@@ -1,0 +1,43 @@
+{
+  "whatsappNumber": "7717766958",
+  "geminiApiKey": "AIzaSyCufrqgY_SfHnyMa0S7V0JGQj5W9ylWTyQ",
+  "agencyName": "90skids.digital",
+  "agencyUrl": "90skids.digital",
+  "senderName": "Nirbhay Kumar",
+  "locations": [
+    "Bhagalpur",
+    "Kahalgaon",
+    "Naugachhia",
+    "Banka",
+    "Munger",
+    "Purnia",
+    "Katihar",
+    "Begusarai",
+    "Khagaria",
+    "Patna"
+  ],
+  "keywords": [
+    "schools",
+    "clinics",
+    "gyms",
+    "supermarkets",
+    "boutiques",
+    "cafes",
+    "bakeries",
+    "salons",
+    "real estate",
+    "coaching",
+    "doctors"
+  ],
+  "currentLocationIndex": 0,
+  "scheduleTime": "09:00",
+  "emailSubjectTemplate": "Professional Website & Mobile App Development for {{businessName}}",
+  "emailBodyTemplate": "Hi {{businessName}},\n\nI hope you are doing well.\n\nMy name is Nirbhay Kumar from 90skids.digital, a premium website and app development agency. \n\nI was looking at businesses in {{location}} and found {{businessName}}. I noticed that your business either doesn't have a modern website or has an unoptimized online presence. In today's digital world, a fast, gorgeous, mobile-responsive website helps you stand out, build trust, and gain 2x to 3x more local customers.\n\nWe specialize in high-conversion websites and mobile applications tailored for businesses like yours. You can explore our work and details here: https://90skids.digital\n\nIf you'd like a custom proposal or a quick talk about how we can build a stellar digital presence for {{businessName}}, please reply to this email or message me directly on WhatsApp at +91 7717766958.\n\nWarm regards,\n\nNirbhay Kumar\nFounder, 90skids.digital\nWhatsApp: +91 7717766958",
+  "smtp": {
+    "host": "smtp.gmail.com",
+    "port": "587",
+    "secure": false,
+    "user": "90skids.digital@gmail.com",
+    "pass": "lkej tiue bdvw qjzg"
+  }
+}
