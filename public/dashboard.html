@@ -1,0 +1,2164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jordan — WhatsApp Lead Gen & Outreach Agent</title>
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <style>
+    :root {
+      --bg-color: #080808;
+      --card-bg: rgba(22, 22, 22, 0.65);
+      --card-border: rgba(212, 175, 55, 0.15);
+      --card-border-active: rgba(212, 175, 55, 0.45);
+      --gold: #d4af37;
+      --gold-dark: #aa7c11;
+      --gold-light: #f3e5ab;
+      --gold-glow: rgba(212, 175, 55, 0.3);
+      --green: #25D366;
+      --green-glow: rgba(37, 211, 102, 0.2);
+      --text-main: #f5f5f5;
+      --text-muted: #a0a0a0;
+      --font-title: 'Outfit', 'Inter', sans-serif;
+      --font-body: 'Inter', sans-serif;
+      --glass-blur: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(212, 175, 55, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(37, 211, 102, 0.03) 0%, transparent 40%);
+    }
+
+    /* Container */
+    .app-container {
+      display: flex;
+      flex: 1;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background-color: rgba(12, 12, 12, 0.95);
+      border-right: 1px solid var(--card-border);
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      z-index: 10;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 40px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+    }
+
+    .futuristic-logo {
+      position: relative;
+      width: 56px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .orbit {
+      position: absolute;
+      border-radius: 50%;
+      border: 1.5px solid transparent;
+      box-shadow: 0 0 8px rgba(212, 175, 55, 0.05);
+    }
+
+    .orbit.ring-1 {
+      width: 52px;
+      height: 52px;
+      border-top-color: var(--gold);
+      border-bottom-color: var(--gold);
+      animation: rotateClockwise 6s linear infinite;
+      opacity: 0.8;
+    }
+
+    .orbit.ring-2 {
+      width: 44px;
+      height: 44px;
+      border-left: 1px dashed var(--gold-light);
+      border-right: 1px dashed var(--gold-light);
+      animation: rotateCounter 4s linear infinite;
+      opacity: 0.6;
+    }
+
+    .core-glyph {
+      position: relative;
+      z-index: 2;
+      animation: pulseCore 3s ease-in-out infinite;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @keyframes rotateClockwise {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes rotateCounter {
+      from { transform: rotate(360deg); }
+      to { transform: rotate(0deg); }
+    }
+
+    @keyframes pulseCore {
+      0% { transform: scale(0.95); filter: drop-shadow(0 0 3px var(--gold-glow)); }
+      50% { transform: scale(1.05); filter: drop-shadow(0 0 10px var(--gold)); }
+      100% { transform: scale(0.95); filter: drop-shadow(0 0 3px var(--gold-glow)); }
+    }
+
+    .brand-info h1 {
+      font-family: var(--font-title);
+      font-size: 1.4rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--gold-light), var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 0.5px;
+    }
+
+    .brand-info p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: transparent;
+      border: 1px solid transparent;
+    }
+
+    .nav-item:hover {
+      color: var(--text-main);
+      background-color: rgba(255, 255, 255, 0.03);
+      border-color: rgba(212, 175, 55, 0.05);
+    }
+
+    .nav-item.active {
+      color: #000;
+      background: linear-gradient(135deg, var(--gold-light), var(--gold));
+      font-weight: 600;
+      box-shadow: 0 0 15px rgba(212, 175, 55, 0.25);
+      border-color: var(--gold);
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding-top: 20px;
+      border-top: 1px solid rgba(212, 175, 55, 0.1);
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background-color: rgba(37, 211, 102, 0.05);
+      border: 1px solid rgba(37, 211, 102, 0.2);
+      font-size: 0.85rem;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    /* Main Content Area */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 32px;
+      position: relative;
+    }
+
+    /* Header */
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+    }
+
+    .page-title h2 {
+      font-family: var(--font-title);
+      font-size: 1.8rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .page-title p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* DB Missing Banner */
+    .db-warning-banner {
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(170, 124, 17, 0.05));
+      border: 1px solid var(--gold);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: none;
+      align-items: flex-start;
+      gap: 16px;
+      box-shadow: 0 0 15px rgba(212, 175, 55, 0.1);
+    }
+
+    .db-warning-banner svg {
+      color: var(--gold);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .db-warning-text h4 {
+      font-family: var(--font-title);
+      color: var(--gold-light);
+      margin-bottom: 4px;
+      font-size: 1.05rem;
+    }
+
+    .db-warning-text p {
+      font-size: 0.85rem;
+      color: var(--text-main);
+      opacity: 0.9;
+      line-height: 1.4;
+    }
+
+    .db-warning-text code {
+      background-color: rgba(0, 0, 0, 0.4);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      color: var(--gold-light);
+    }
+
+    /* Tabs Content */
+    .tab-content {
+      display: none;
+      flex-direction: column;
+      gap: 24px;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .tab-content.active {
+      display: flex;
+    }
+
+    /* Dashboard Metrics grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+    }
+
+    .metric-card {
+      background-color: var(--card-bg);
+      backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .metric-card:hover {
+      border-color: var(--card-border-active);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(212, 175, 55, 0.05);
+    }
+
+    .metric-info h3 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .metric-info p {
+      font-family: var(--font-title);
+      font-size: 2rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .metric-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: rgba(212, 175, 55, 0.05);
+      border: 1px solid rgba(212, 175, 55, 0.1);
+      color: var(--gold);
+    }
+
+    .metric-icon.wa {
+      background-color: rgba(37, 211, 102, 0.05);
+      border-color: rgba(37, 211, 102, 0.1);
+      color: var(--green);
+    }
+
+    /* Card Panels */
+    .panel {
+      background-color: var(--card-bg);
+      backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+      padding-bottom: 14px;
+    }
+
+    .panel-header h3 {
+      font-family: var(--font-title);
+      font-size: 1.25rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--gold-light);
+    }
+
+    /* Controls & Forms */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 500;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      background-color: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(212, 175, 55, 0.2);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: #fff;
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 10px var(--gold-glow);
+      background-color: rgba(0, 0, 0, 0.6);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 120px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 1px solid transparent;
+      font-family: var(--font-body);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--gold-light), var(--gold));
+      color: #000;
+      box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #fff, var(--gold-light));
+      box-shadow: 0 4px 20px rgba(212, 175, 55, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background-color: rgba(255, 255, 255, 0.05);
+      border-color: rgba(212, 175, 55, 0.2);
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+      border-color: var(--gold);
+      color: #fff;
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #2ecc71, var(--green));
+      color: #fff;
+      box-shadow: 0 4px 15px var(--green-glow);
+    }
+
+    .btn-success:hover {
+      background: linear-gradient(135deg, #57e389, #2ecc71);
+      box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    /* Leads Table Layout */
+    .table-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .filters-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      background-color: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(212, 175, 55, 0.15);
+      padding: 8px 16px;
+      border-radius: 20px;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .filter-btn:hover {
+      color: #fff;
+      border-color: var(--gold);
+    }
+
+    .filter-btn.active {
+      background-color: rgba(212, 175, 55, 0.1);
+      border-color: var(--gold);
+      color: var(--gold-light);
+      box-shadow: 0 0 10px rgba(212, 175, 55, 0.05);
+    }
+
+    .search-box {
+      position: relative;
+      min-width: 260px;
+    }
+
+    .search-box input {
+      padding-left: 40px;
+    }
+
+    .search-box svg {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      width: 18px;
+      height: 18px;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid rgba(212, 175, 55, 0.1);
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    th {
+      background-color: rgba(20, 20, 20, 0.9);
+      padding: 16px;
+      font-weight: 600;
+      color: var(--gold-light);
+      border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+      font-family: var(--font-title);
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      padding: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      vertical-align: middle;
+      color: var(--text-main);
+    }
+
+    tr:hover td {
+      background-color: rgba(255, 255, 255, 0.01);
+    }
+
+    .col-business {
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .col-category {
+      font-size: 0.8rem;
+      background-color: rgba(212, 175, 55, 0.05);
+      border: 1px solid rgba(212, 175, 55, 0.15);
+      color: var(--gold-light);
+      padding: 2px 8px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .col-rating {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #ffc107;
+      font-weight: 500;
+    }
+
+    .col-website-link {
+      color: var(--gold);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .col-website-link:hover {
+      text-decoration: underline;
+      color: var(--gold-light);
+    }
+
+    .status-badge-sent {
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .status-badge-sent.success {
+      background-color: rgba(37, 211, 102, 0.1);
+      border: 1px solid rgba(37, 211, 102, 0.3);
+      color: var(--green);
+    }
+
+    .status-badge-sent.pending {
+      background-color: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 6px;
+    }
+
+    .action-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      border: 1px solid rgba(212, 175, 55, 0.2);
+      background-color: rgba(0, 0, 0, 0.3);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+
+    .action-btn:hover {
+      border-color: var(--gold);
+      color: var(--gold-light);
+      background-color: rgba(212, 175, 55, 0.05);
+    }
+
+    .action-btn.wa-btn:hover {
+      border-color: var(--green);
+      color: var(--green);
+      background-color: rgba(37, 211, 102, 0.05);
+    }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 20px;
+    }
+
+    .pagination-text {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .pagination-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Scraper trigger UI */
+    .active-run-panel {
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.08), rgba(0,0,0,0.4));
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+      display: none;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 8px;
+      background-color: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold), var(--gold-light));
+      width: 0%;
+      transition: width 0.4s ease;
+      box-shadow: 0 0 10px var(--gold-glow);
+    }
+
+    .active-run-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      color: var(--text-main);
+    }
+
+    /* Terminal Console */
+    .console-terminal {
+      background-color: #050505;
+      border: 1px solid rgba(212, 175, 55, 0.25);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.85rem;
+      color: #33ff33;
+      height: 400px;
+      overflow-y: auto;
+      box-shadow: inset 0 0 15px rgba(0,0,0,0.9);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .console-line {
+      line-height: 1.4;
+      word-break: break-all;
+    }
+
+    .console-line.info {
+      color: #00ddff;
+    }
+
+    .console-line.error {
+      color: #ff3333;
+      font-weight: bold;
+    }
+
+    .console-line.success {
+      color: #33ff33;
+    }
+
+    .console-line.system {
+      color: #d4af37;
+    }
+
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 100;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(5px);
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background-color: #121212;
+      border: 1px solid var(--gold);
+      border-radius: 16px;
+      width: 550px;
+      max-width: 90%;
+      padding: 28px;
+      box-shadow: 0 0 30px var(--gold-glow);
+      animation: modalSlide 0.3s ease;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+      padding-bottom: 12px;
+    }
+
+    .modal-header h3 {
+      font-family: var(--font-title);
+      color: var(--gold-light);
+      font-size: 1.25rem;
+    }
+
+    .close-modal-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .close-modal-btn:hover {
+      color: #fff;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+      border-top: 1px solid rgba(212, 175, 55, 0.1);
+      padding-top: 16px;
+    }
+
+    /* Animations */
+    @keyframes pulse {
+      0% { opacity: 0.6; box-shadow: 0 0 4px var(--green); }
+      50% { opacity: 1; box-shadow: 0 0 12px var(--green); }
+      100% { opacity: 0.6; box-shadow: 0 0 4px var(--green); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes modalSlide {
+      from { opacity: 0; transform: translateY(-30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="brand-section">
+        <div class="futuristic-logo">
+          <div class="orbit ring-1"></div>
+          <div class="orbit ring-2"></div>
+          <div class="core-glyph">
+            <svg viewBox="0 0 100 100" width="36" height="36">
+              <defs>
+                <linearGradient id="gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#f3e5ab" />
+                  <stop offset="50%" stop-color="#d4af37" />
+                  <stop offset="100%" stop-color="#aa7c11" />
+                </linearGradient>
+              </defs>
+              <circle cx="50" cy="50" r="42" fill="none" stroke="url(#gold-grad)" stroke-width="4" stroke-dasharray="16 8 4 8" />
+              <polygon points="42,34 70,50 42,66" fill="url(#gold-grad)" />
+            </svg>
+          </div>
+        </div>
+        <div class="brand-info">
+          <h1>Jordan</h1>
+          <p>90's Kids Digital</p>
+        </div>
+      </div>
+      
+      <div class="nav-links">
+        <div class="nav-item active" data-tab="overview">
+          <i data-lucide="layout-dashboard"></i> Overview
+        </div>
+        <div class="nav-item" data-tab="leads">
+          <i data-lucide="users"></i> Leads Table
+        </div>
+        <div class="nav-item" data-tab="scraper">
+          <i data-lucide="search-code"></i> Scraper Tool
+        </div>
+        <div class="nav-item" data-tab="whatsapp">
+          <i data-lucide="message-square"></i> WhatsApp
+        </div>
+        <div class="nav-item" data-tab="email">
+          <i data-lucide="mail"></i> Email Settings
+        </div>
+        <div class="nav-item" data-tab="template">
+          <i data-lucide="file-text"></i> Template Editor
+        </div>
+        <div class="nav-item" data-tab="schedule">
+          <i data-lucide="calendar-days"></i> Schedule & City
+        </div>
+        <div class="nav-item" data-tab="logs">
+          <i data-lucide="terminal"></i> Live Logs
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="status-badge" id="wa-connection-status">
+          <div class="status-dot"></div>
+          <span>Green API Authorized</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      
+      <!-- Top header -->
+      <div class="app-header">
+        <div class="page-title">
+          <h2 id="current-tab-title">Overview Dashboard</h2>
+          <p id="current-tab-subtitle">Real-time stats and automation control center.</p>
+        </div>
+        
+        <div>
+          <button class="btn btn-secondary" onclick="checkAllConnections()">
+            <i data-lucide="refresh-cw"></i> Refresh Status
+          </button>
+        </div>
+      </div>
+
+      <!-- DB Missing Banner Alert -->
+      <div class="db-warning-banner" id="db-warning-alert">
+        <i data-lucide="alert-triangle" size="24"></i>
+        <div class="db-warning-text">
+          <h4>⚠️ Database Initialization Required</h4>
+          <p>The Supabase tables are missing from public schema. Please copy the SQL code from <code>schema.sql</code> and execute it in your <strong>Supabase SQL Editor</strong> to start storing leads.</p>
+        </div>
+      </div>
+
+      <!-- Active Scraper Progress Panel -->
+      <div class="active-run-panel" id="active-scraper-panel">
+        <div class="active-run-info">
+          <div>
+            <strong id="active-scraper-title">Scraper active: Bhagalpur</strong>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;" id="active-scraper-status">Running crawls...</div>
+          </div>
+          <div style="text-align: right;">
+            <strong id="active-scraper-percentage">35%</strong>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;" id="active-scraper-count">New: 0 leads</div>
+          </div>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar" id="active-scraper-bar"></div>
+        </div>
+      </div>
+
+      <!-- TAB 1: OVERVIEW -->
+      <div class="tab-content active" id="tab-overview">
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-info">
+              <h3>Total Leads</h3>
+              <p id="stat-total-leads">0</p>
+            </div>
+            <div class="metric-icon">
+              <i data-lucide="users"></i>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-info">
+              <h3>High Potential</h3>
+              <p id="stat-high-potential">0</p>
+            </div>
+            <div class="metric-icon">
+              <i data-lucide="star"></i>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-info">
+              <h3>No Website</h3>
+              <p id="stat-no-website">0</p>
+            </div>
+            <div class="metric-icon">
+              <i data-lucide="globe-2"></i>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-info">
+              <h3>Emails Sent</h3>
+              <p id="stat-emails-sent">0</p>
+            </div>
+            <div class="metric-icon wa">
+              <i data-lucide="send"></i>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <!-- Strategy Engine Panel -->
+          <div class="panel">
+            <div class="panel-header">
+              <h3><i data-lucide="cpu" style="color:var(--gold);"></i> Jordan AI Strategy Engine</h3>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.9rem; line-height: 1.4;">
+              <div style="padding: 10px; background: rgba(212,175,55,0.05); border-left: 3px solid var(--gold); border-radius: 4px;">
+                <strong>💡 Web Development Pitch (Score 80+)</strong>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Targeting highly-rated businesses with email but no website. AI drafts a pitch for custom web services.</p>
+              </div>
+              <div style="padding: 10px; background: rgba(37,211,102,0.05); border-left: 3px solid var(--green); border-radius: 4px;">
+                <strong>💡 Reputation Recovery Pitch (Score 50-79)</strong>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Targeting businesses with reviews &lt; 4.0. AI drafts reputation repair and Local SEO offerings.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Outreach Funnel Panel -->
+          <div class="panel">
+            <div class="panel-header">
+              <h3><i data-lucide="bar-chart-3" style="color:var(--gold);"></i> Outreach Funnel Conversion</h3>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 8px;">
+              <div>
+                <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom: 4px;">
+                  <span>Leads Scraped</span>
+                  <span id="funnel-scraped">0</span>
+                </div>
+                <div style="width:100%; height:8px; background:rgba(255,255,255,0.05); border-radius:4px; overflow:hidden;">
+                  <div style="height:100%; background:var(--gold); width: 100%;"></div>
+                </div>
+              </div>
+              <div>
+                <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom: 4px;">
+                  <span>Emailed (Outreach Target)</span>
+                  <span id="funnel-emailed">0</span>
+                </div>
+                <div style="width:100%; height:8px; background:rgba(255,255,255,0.05); border-radius:4px; overflow:hidden;">
+                  <div id="funnel-emailed-bar" style="height:100%; background:#e67e22; width: 0%;"></div>
+                </div>
+              </div>
+              <div>
+                <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom: 4px;">
+                  <span>WhatsApp Digest Sent</span>
+                  <span id="funnel-wa">0</span>
+                </div>
+                <div style="width:100%; height:8px; background:rgba(255,255,255,0.05); border-radius:4px; overflow:hidden;">
+                  <div id="funnel-wa-bar" style="height:100%; background:var(--green); width: 0%;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h3><i data-lucide="zap"></i> Quick Outreach Agent Actions</h3>
+          </div>
+          <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="triggerImmediateCron()">
+              <i data-lucide="play-circle"></i> Trigger Daily Automation Run Now
+            </button>
+            <button class="btn btn-secondary" onclick="document.querySelector('[data-tab=scraper]').click()">
+              <i data-lucide="search"></i> Run Manual Lead Crawl
+            </button>
+          </div>
+        </div>
+        
+        <div class="panel">
+          <div class="panel-header">
+            <h3><i data-lucide="activity"></i> System Connection Checks</h3>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div style="display: flex; justify-content: space-between; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                <span>Supabase Database Connection:</span>
+                <span id="conn-supabase" style="font-weight: 600;">Checking...</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                <span>Upstash Redis Cache:</span>
+                <span id="conn-redis" style="font-weight: 600;">Checking...</span>
+              </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div style="display: flex; justify-content: space-between; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                <span>Green API (WhatsApp):</span>
+                <span id="conn-whatsapp" style="font-weight: 600;">Checking...</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                <span>Apify Google Scraper:</span>
+                <span id="conn-apify" style="font-weight: 600;">Checking...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: LEADS TABLE -->
+      <div class="tab-content" id="tab-leads">
+        <div class="panel">
+          <div class="table-controls">
+            <div class="filters-group">
+              <button class="filter-btn active" data-filter="all">All Leads</button>
+              <button class="filter-btn" data-filter="high_potential">High Potential (Rating >= 4)</button>
+              <button class="filter-btn" data-filter="no_website">No Website</button>
+              <button class="filter-btn" data-filter="has_email">Has Email</button>
+            </div>
+            
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <button class="btn btn-success btn-sm" onclick="openBroadcastModal()" style="font-size: 0.85rem; padding: 10px 18px;">
+                <i data-lucide="megaphone" style="width:16px;height:16px;"></i> Send WA Broadcast
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="exportLeadsCsv()" style="font-size: 0.85rem; padding: 10px 18px;">
+                <i data-lucide="download" style="width:16px;height:16px;"></i> Export CSV
+              </button>
+              <div class="search-box">
+                <i data-lucide="search"></i>
+                <input type="text" id="lead-search-input" placeholder="Search by name, category, city...">
+              </div>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table id="leads-data-table">
+              <thead>
+                <tr>
+                  <th>Business Name</th>
+                  <th>Category</th>
+                  <th>Location</th>
+                  <th>Phone</th>
+                  <th>Website</th>
+                  <th>Email</th>
+                  <th>Score</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="leads-table-body">
+                <tr>
+                  <td colspan="9" style="text-align: center; color: var(--text-muted);">Loading leads...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="pagination">
+            <div class="pagination-text" id="pagination-info">
+              Showing page 1 of 1 (0 total leads)
+            </div>
+            <div class="pagination-buttons">
+              <button class="btn btn-secondary btn-sm" id="pagination-prev" onclick="changePage(-1)">Prev</button>
+              <button class="btn btn-secondary btn-sm" id="pagination-next" onclick="changePage(1)">Next</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: SCRAPER -->
+      <div class="tab-content" id="tab-scraper">
+        <div class="panel">
+          <div class="panel-header">
+            <h3><i data-lucide="plus-circle"></i> Trigger Manual Google Places Scrape</h3>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="scraper-city">Target City (India)</label>
+              <input type="text" id="scraper-city" value="Bhagalpur">
+            </div>
+            
+            <div class="form-group">
+              <label for="scraper-keyword">Single Keyword Filter (Optional)</label>
+              <select id="scraper-keyword">
+                <option value="">All configured keywords</option>
+                <!-- populated by JS -->
+              </select>
+            </div>
+          </div>
+          
+          <button class="btn btn-primary" onclick="triggerManualScrape()">
+            <i data-lucide="play"></i> Start Lead Extraction Run
+          </button>
+        </div>
+        
+        <div class="panel">
+          <div class="panel-header">
+            <h3><i data-lucide="list"></i> Configured Keywords to Crawl</h3>
+          </div>
+          <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px;">These keywords are crawled in target cities during daily automatic schedule rotations.</p>
+          
+          <div class="form-group">
+            <textarea id="settings-keywords" placeholder="Enter keywords, one per line"></textarea>
+          </div>
+          
+          <button class="btn btn-secondary" onclick="saveKeywordsSetting()">
+            <i data-lucide="save"></i> Save Keywords list
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 4: WHATSAPP -->
+      <div class="tab-content" id="tab-whatsapp">
+        <div class="panel">
+          <div class="panel-header">
+            <h3><i data-lucide="check-circle2"></i> Green API WhatsApp Status</h3>
+          </div>
+          <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 24px;">
+            <div style="width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background-color: rgba(37,211,102,0.1); color: var(--green); border: 1px solid rgba(37,211,102,0.3);">
+              <i data-lucide="phone" size="32"></i>
+            </div>
+            <div>
+              <h4 style="font-size: 1.15rem; color:#fff;" id="wa-card-status">✅ Connected: 917717766958</h4>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">Instance ID: 7107650814 | Authorized REST API Mode</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h3><i data-lucide="navigation"></i> Send Test WhatsApp Message</h3>
+          </div>
+          
+          <div class="form-group">
+            <label for="test-wa-message">Test Message Body</label>
+            <textarea id="test-wa-message">Hello Nirbhay Ji! This is Jordan AI. Everything is set up and working perfectly. Let's close some digital deals! 🚀</textarea>
+          </div>
+          
+          <button class="btn btn-success" onclick="sendTestWhatsApp()">
+            <i data-lucide="send"></i> Send Test message to owner (917717766958)
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 5: EMAIL OUTREACH -->
+      <div class="tab-content" id="tab-email">
+        <div class="panel">
+          <div class="panel-header">
+            <h3><i data-lucide="settings"></i> Configure Email Credentials</h3>
+          </div>
+          
+          <div class="form-group">
+            <label for="settings-resend-key">Resend.com API Key (Primary)</label>
+            <input type="password" id="settings-resend-key" placeholder="re_...">
+            <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: block;">Default key is used if left blank.</span>
+          </div>
+
+          <div style="margin: 28px 0; border-top: 1px dashed rgba(212,175,55,0.2);"></div>
+          
+          <h4 style="font-family: var(--font-title); color: var(--gold-light); margin-bottom: 16px; font-size: 1.1rem;">Gmail SMTP Server Fallback</h4>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="settings-smtp-host">SMTP Host</label>
+              <input type="text" id="settings-smtp-host" placeholder="smtp.gmail.com">
+            </div>
+            <div class="form-group">
+              <label for="settings-smtp-port">SMTP Port</label>
+              <input type="number" id="settings-smtp-port" placeholder="587">
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="settings-smtp-user">SMTP Username / Email</label>
+              <input type="text" id="settings-smtp-user" placeholder="your-email@gmail.com">
+            </div>
+            <div class="form-group">
+              <label for="settings-smtp-pass">SMTP App Password</label>
+              <input type="password" id="settings-smtp-pass" placeholder="xxxx xxxx xxxx xxxx">
+            </div>
+          </div>
+
+          <button class="btn btn-primary" onclick="saveEmailSettings()">
+            <i data-lucide="save"></i> Save Email Configurations
+          </button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h3><i data-lucide="mail-search"></i> Send Test Outreach Email</h3>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="test-email-to">To (Recipient Email)</label>
+              <input type="email" id="test-email-to" placeholder="test-business@gmail.com">
+            </div>
+            <div class="form-group">
+              <label for="test-email-subject">Subject</label>
+              <input type="text" id="test-email-subject" value="A special proposal from 90's Kids Digital">
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="test-email-body">Email Body (Plain Text)</label>
+            <textarea id="test-email-body">Hi there! This is a test outreach message from Jordan. We would love to build a premium website for your business in Bhagalpur. Let's connect soon!</textarea>
+          </div>
+          
+          <button class="btn btn-secondary" onclick="sendTestEmail()">
+            <i data-lucide="send"></i> Send Test Outreach Email
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 6: TEMPLATE EDITOR -->
+      <div class="tab-content" id="tab-template">
+        <div class="panel">
+          <div class="panel-header">
+            <h3><i data-lucide="bot"></i> Jordan AI Brain Key</h3>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="settings-gemini-key">Gemini Flash API Key</label>
+              <input type="password" id="settings-gemini-key" placeholder="AIzaSy...">
+            </div>
+            <div class="form-group">
+              <label for="settings-gemini-model">Gemini Model ID</label>
+              <input type="text" id="settings-gemini-model" value="gemini-2.5-flash">
+            </div>
+          </div>
+          
+          <button class="btn btn-secondary" onclick="saveGeminiSettings()">
+            <i data-lucide="save"></i> Save AI Brain configuration
+          </button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h3><i data-lucide="file-edit"></i> Default Outreach Templates (Fallbacks)</h3>
+          </div>
+          
+          <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; line-height: 1.4;">
+            Available merge fields: <code>{{businessName}}</code>, <code>{{location}}</code>, <code>{{agencyName}}</code>, <code>{{category}}</code>
+            <br>
+            Note: If Gemini API Key is configured, Jordan will dynamically generate personalized witty pitches. Otherwise, these static templates are used.
+          </div>
+
+          <div class="form-group">
+            <label for="settings-email-subject">Outreach Email Subject</label>
+            <input type="text" id="settings-email-subject">
+          </div>
+          
+          <div class="form-group">
+            <label for="settings-email-body">Outreach Email Body</label>
+            <textarea id="settings-email-body" style="height: 180px;"></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label for="settings-wa-template">WhatsApp Digest / Message Template</label>
+            <textarea id="settings-wa-template" style="height: 100px;"></textarea>
+          </div>
+
+          <button class="btn btn-primary" onclick="saveTemplatesSetting()">
+            <i data-lucide="save"></i> Save Templates
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 7: SCHEDULE & ROTATION -->
+      <div class="tab-content" id="tab-schedule">
+        <div class="panel">
+          <div class="panel-header">
+            <h3><i data-lucide="calendar"></i> Daily Automation Schedule</h3>
+          </div>
+          
+          <div class="form-group" style="max-width: 250px;">
+            <label for="settings-cron-time">Execution Time (IST)</label>
+            <input type="text" id="settings-cron-time" placeholder="09:00">
+            <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: block;">24-hour format (e.g. 09:00, 18:30)</span>
+          </div>
+          
+          <button class="btn btn-primary" onclick="saveScheduleSettings()">
+            <i data-lucide="save"></i> Save Schedule Time
+          </button>
+        </div>
+        
+        <div class="panel">
+          <div class="panel-header">
+            <h3><i data-lucide="map-pin"></i> Target Locations & Rotation Order</h3>
+          </div>
+          <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px;">Daily scheduler crawls these cities in India, rotating to the next city each day.</p>
+          
+          <div class="form-group">
+            <textarea id="settings-locations" placeholder="Enter cities, one per line"></textarea>
+          </div>
+          
+          <div class="form-group" style="max-width: 320px;">
+            <label for="settings-active-location-index">Next Rotation City index (0-based)</label>
+            <input type="number" id="settings-active-location-index" min="0">
+          </div>
+          
+          <button class="btn btn-secondary" onclick="saveLocationsSetting()">
+            <i data-lucide="save"></i> Save Cities Rotation
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 8: LOGS TERMINAL -->
+      <div class="tab-content" id="tab-logs">
+        <div class="panel">
+          <div class="panel-header">
+            <h3><i data-lucide="terminal"></i> Live Jordan Automation Console</h3>
+            <button class="btn btn-secondary btn-sm" onclick="clearTerminal()">
+              <i data-lucide="trash-2"></i> Clear Screen
+            </button>
+          </div>
+          
+          <div class="console-terminal" id="logs-console">
+            <div class="console-line system">=== Jordan Live Logging Connection Initialized ===</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- OUTREACH MODAL -->
+  <div class="modal" id="outreach-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-lead-title">Send Outreach to Business</h3>
+        <button class="close-modal-btn" onclick="closeOutreachModal()"><i data-lucide="x"></i></button>
+      </div>
+      <div class="form-group" id="modal-subject-group" style="display: none;">
+        <label for="modal-subject-input">Email Subject</label>
+        <input type="text" id="modal-subject-input">
+      </div>
+      <div class="form-group">
+        <label for="modal-message-input">Message Body</label>
+        <textarea id="modal-message-input" style="height: 200px;"></textarea>
+      </div>
+      <input type="hidden" id="modal-lead-id">
+      <input type="hidden" id="modal-outreach-type">
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeOutreachModal()">Cancel</button>
+        <button class="btn btn-primary" id="modal-send-btn" onclick="executeManualOutreach()">Send Outreach Now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTES MODAL -->
+  <div class="modal" id="notes-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Edit Lead Notes</h3>
+        <button class="close-modal-btn" onclick="closeNotesModal()"><i data-lucide="x"></i></button>
+      </div>
+      <div class="form-group">
+        <label for="notes-textarea">Notes</label>
+        <textarea id="notes-textarea" style="height: 180px;"></textarea>
+      </div>
+      <input type="hidden" id="notes-lead-id">
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeNotesModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveLeadNotes()">Save Notes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BROADCAST MODAL -->
+  <div class="modal" id="broadcast-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>📢 Send WhatsApp Broadcast</h3>
+        <button class="close-modal-btn" onclick="closeBroadcastModal()"><i data-lucide="x"></i></button>
+      </div>
+      <div class="form-group">
+        <label for="broadcast-filter">Target Audience Filter</label>
+        <select id="broadcast-filter">
+          <option value="all">All Leads</option>
+          <option value="high_potential">High Potential (Rating >= 4.0)</option>
+          <option value="no_website">No Website Leads</option>
+          <option value="has_email">Leads with Email</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="broadcast-message-input">Message Body</label>
+        <textarea id="broadcast-message-input" style="height: 180px;"></textarea>
+        <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: block;">
+          Placeholders: <code>{{businessName}}</code>, <code>{{location}}</code>, <code>{{category}}</code>
+        </span>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeBroadcastModal()">Cancel</button>
+        <button class="btn btn-success" id="broadcast-send-btn" onclick="executeBroadcast()">Start Broadcast</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Tab switching logic
+    const navItems = document.querySelectorAll('.nav-item');
+    const tabContents = document.querySelectorAll('.tab-content');
+    const currentTabTitle = document.getElementById('current-tab-title');
+    const currentTabSubtitle = document.getElementById('current-tab-subtitle');
+
+    const tabMeta = {
+      overview: { title: "Overview Dashboard", subtitle: "Real-time statistics and connection checkers." },
+      leads: { title: "Leads Database", subtitle: "Manage, filter, and manually message extracted leads." },
+      scraper: { title: "Scraper Management", subtitle: "Extract leads from Google Places in real-time." },
+      whatsapp: { title: "WhatsApp Gateway", subtitle: "Configure Green API connection and test messaging." },
+      email: { title: "Email Configuration", subtitle: "Manage Resend integration and SMTP credentials." },
+      template: { title: "Outreach Templates", subtitle: "Edit the default outreach letters and configure Jordan AI Brain." },
+      schedule: { title: "Automation Scheduler", subtitle: "Rotate target cities in India and schedule daily automation." },
+      logs: { title: "Jordan Live Console", subtitle: "Real-time SSE event logger of the outreach engine." }
+    };
+
+    navItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const tab = item.getAttribute('data-tab');
+        
+        // Update nav items active status
+        navItems.forEach(n => n.classList.remove('active'));
+        item.classList.add('active');
+        
+        // Update tab visibility
+        tabContents.forEach(content => {
+          content.classList.remove('active');
+          if (content.id === `tab-${tab}`) {
+            content.classList.add('active');
+          }
+        });
+
+        // Update titles
+        if (tabMeta[tab]) {
+          currentTabTitle.innerText = tabMeta[tab].title;
+          currentTabSubtitle.innerText = tabMeta[tab].subtitle;
+        }
+
+        // Trigger tab-specific fetches
+        if (tab === 'overview') {
+          fetchStats();
+        } else if (tab === 'leads') {
+          fetchLeads();
+        } else if (tab === 'scraper' || tab === 'schedule' || tab === 'template' || tab === 'email') {
+          fetchSettings();
+        }
+      });
+    });
+
+    // Global variables for Leads
+    let currentFilter = 'all';
+    let currentSearch = '';
+    let currentPage = 1;
+    let totalPages = 1;
+
+    // Load data on window load
+    window.onload = function() {
+      lucide.createIcons();
+      fetchStats();
+      checkAllConnections();
+      startLogsStream();
+      startStatusPoller();
+      fetchSettings();
+    };
+
+    // SSE Logs connection
+    function startLogsStream() {
+      const consoleEl = document.getElementById('logs-console');
+      const eventSource = new EventSource('/api/logs/stream');
+      
+      eventSource.onmessage = function(event) {
+        const log = JSON.parse(event.data);
+        const logLine = document.createElement('div');
+        logLine.classList.add('console-line', log.level || 'info');
+        
+        const timestamp = new Date(log.timestamp).toLocaleTimeString();
+        logLine.innerText = `[${timestamp}] [${log.level.toUpperCase()}] ${log.message}`;
+        
+        consoleEl.appendChild(logLine);
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+      };
+
+      eventSource.onerror = function() {
+        console.error("SSE connection lost. Reconnecting...");
+      };
+    }
+
+    function clearTerminal() {
+      const consoleEl = document.getElementById('logs-console');
+      consoleEl.innerHTML = '<div class="console-line system">=== Screen Cleared ===</div>';
+    }
+
+    // Status poller to check current scraping activities
+    function startStatusPoller() {
+      setInterval(() => {
+        fetch('/health')
+          .then(r => r.json())
+          .then(health => {
+            const panel = document.getElementById('active-scraper-panel');
+            const run = health.currentRun;
+            
+            if (run && run.active) {
+              panel.style.display = 'block';
+              document.getElementById('active-scraper-title').innerText = `Scraper Active: ${run.city}`;
+              document.getElementById('active-scraper-status').innerText = `${run.status} (Current Keyword: ${run.keyword})`;
+              document.getElementById('active-scraper-percentage').innerText = `${run.progress}%`;
+              document.getElementById('active-scraper-count').innerText = `New: ${run.resultsCount} leads`;
+              document.getElementById('active-scraper-bar').style.width = `${run.progress}%`;
+            } else {
+              panel.style.display = 'none';
+            }
+          })
+          .catch(err => console.error("Error in status poller:", err));
+      }, 5000);
+    }
+
+    // Fetch dashboard statistics
+    function fetchStats() {
+      fetch('/api/stats')
+        .then(r => {
+          if (!r.ok) throw new Error("Database not initialized");
+          return r.json();
+        })
+        .then(data => {
+          document.getElementById('db-warning-alert').style.display = 'none';
+          document.getElementById('stat-total-leads').innerText = data.totalLeads;
+          document.getElementById('stat-high-potential').innerText = data.highPotential;
+          document.getElementById('stat-no-website').innerText = data.noWebsite;
+          document.getElementById('stat-emails-sent').innerText = data.emailsSent;
+
+          // Update Conversion Funnel
+          document.getElementById('funnel-scraped').innerText = data.totalLeads;
+          document.getElementById('funnel-emailed').innerText = data.emailsSent;
+          document.getElementById('funnel-wa').innerText = data.waSent;
+          
+          const emailPct = data.totalLeads > 0 ? (data.emailsSent / data.totalLeads) * 100 : 0;
+          const waPct = data.totalLeads > 0 ? (data.waSent / data.totalLeads) * 100 : 0;
+          
+          document.getElementById('funnel-emailed-bar').style.width = `${emailPct}%`;
+          document.getElementById('funnel-wa-bar').style.width = `${waPct}%`;
+        })
+        .catch(err => {
+          console.error(err);
+          document.getElementById('db-warning-alert').style.display = 'flex';
+        });
+    }
+
+    // Check Connections
+    function checkAllConnections() {
+      const getStatusLabel = (status) => {
+        if (!status) return '<span style="color:var(--text-muted)">Not Checked</span>';
+        if (status.includes('connected') || status.includes('authorized') || status === 'active') {
+          return '<span style="color:var(--green)">● Active</span>';
+        }
+        return '<span style="color:#ff3333">● Disconnected</span>';
+      };
+
+      fetch('/health')
+        .then(r => r.json())
+        .then(data => {
+          document.getElementById('conn-supabase').innerHTML = getStatusLabel(data.supabase);
+          document.getElementById('conn-redis').innerHTML = getStatusLabel(data.redis);
+          document.getElementById('conn-whatsapp').innerHTML = getStatusLabel(data.whatsapp);
+          document.getElementById('conn-apify').innerHTML = getStatusLabel(data.apify);
+
+          if (data.whatsapp.includes('authorized') || data.whatsapp === 'connected') {
+            document.getElementById('wa-connection-status').innerHTML = '<div class="status-dot"></div><span>Green API Authorized</span>';
+            document.getElementById('wa-card-status').innerText = '✅ Connected: 917717766958';
+          } else {
+            document.getElementById('wa-connection-status').innerHTML = '<div class="status-dot" style="background-color:#ff3333;box-shadow: 0 0 8px #ff3333;"></div><span>Green API Offline</span>';
+            document.getElementById('wa-card-status').innerText = '❌ Connection Error / Disconnected';
+          }
+        })
+        .catch(err => {
+          console.error(err);
+        });
+    }
+
+    // Fetch leads data
+    function fetchLeads() {
+      const tableBody = document.getElementById('leads-table-body');
+      tableBody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">Fetching latest leads...</td></tr>';
+      
+      const url = `/api/leads?filter=${currentFilter}&search=${currentSearch}&page=${currentPage}&limit=15`;
+      fetch(url)
+        .then(r => r.json())
+        .then(data => {
+          tableBody.innerHTML = '';
+          if (!data.leads || data.leads.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">No leads found matching current criteria.</td></tr>';
+            return;
+          }
+
+          totalPages = data.totalPages;
+          document.getElementById('pagination-info').innerText = `Showing page ${data.page} of ${data.totalPages} (${data.total} total leads)`;
+          document.getElementById('pagination-prev').disabled = data.page <= 1;
+          document.getElementById('pagination-next').disabled = data.page >= data.totalPages;
+
+          data.leads.forEach(lead => {
+            const tr = document.createElement('tr');
+            
+            // rating star render
+            const ratingScore = lead.rating || 0;
+            const ratingHTML = ratingScore > 0 ? `<div class="col-rating"><i data-lucide="star" size="14" fill="#ffc107"></i> ${ratingScore.toFixed(1)}</div>` : '<span style="color:var(--text-muted)">-</span>';
+            
+            // website
+            const websiteHTML = lead.website ? `<a class="col-website-link" href="${lead.website}" target="_blank"><i data-lucide="external-link" size="14"></i> View</a>` : '<span style="color:#ff3333">No Site</span>';
+
+            // emails
+            const emailHTML = lead.email ? lead.email : '<span style="color:var(--text-muted)">-</span>';
+
+            // status badges
+            const waStatusHTML = lead.wa_sent ? `<span class="status-badge-sent success"><i data-lucide="check" size="12"></i> WA</span>` : `<span class="status-badge-sent pending">WA Pending</span>`;
+            const emailStatusHTML = lead.email_sent ? `<span class="status-badge-sent success"><i data-lucide="check" size="12"></i> Mail</span>` : `<span class="status-badge-sent pending">Mail Pending</span>`;
+
+            // note text preview
+            const notePreview = lead.notes ? lead.notes.substring(0, 30) + (lead.notes.length > 30 ? '...' : '') : 'Add note...';
+
+            // Calculate lead score color
+            const leadScore = lead.lead_score || 0;
+            let scoreText = 'Cool';
+            let scoreColor = '#9e9e9e';
+            if (leadScore >= 80) {
+              scoreText = 'HOT 🔥';
+              scoreColor = 'var(--gold)';
+            } else if (leadScore >= 50) {
+              scoreText = 'Warm';
+              scoreColor = '#e67e22';
+            }
+            const scoreHTML = `<div style="font-weight:700; color:${scoreColor};">${leadScore} <span style="font-size:0.7rem; font-weight:500; opacity:0.85; padding-left:4px;">(${scoreText})</span></div>`;
+
+            tr.innerHTML = `
+              <td class="col-business">${lead.business_name}</td>
+              <td><span class="col-category">${lead.category}</span></td>
+              <td>${lead.location}</td>
+              <td>${lead.phone}</td>
+              <td>${websiteHTML}</td>
+              <td>${emailHTML}</td>
+              <td>${scoreHTML}</td>
+              <td>
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                  ${waStatusHTML}
+                  ${emailStatusHTML}
+                </div>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <button class="action-btn wa-btn" onclick="openOutreachModal('${lead.id}', 'whatsapp')" title="Send WhatsApp message">
+                    <i data-lucide="message-square" size="16"></i>
+                  </button>
+                  <button class="action-btn" onclick="openOutreachModal('${lead.id}', 'email')" title="Send Email message" ${lead.email ? '' : 'disabled'}>
+                    <i data-lucide="mail" size="16"></i>
+                  </button>
+                  <button class="action-btn" onclick="openNotesModal('${lead.id}', '${encodeURIComponent(lead.notes || "")}')" title="Edit notes">
+                    <i data-lucide="edit-3" size="16"></i>
+                  </button>
+                </div>
+              </td>
+            `;
+
+            tableBody.appendChild(tr);
+          });
+          lucide.createIcons();
+        })
+        .catch(err => {
+          tableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #ff3333;">Error retrieving leads: ${err.message}</td></tr>`;
+        });
+    }
+
+    // Search and filter event listeners
+    document.getElementById('lead-search-input').addEventListener('input', (e) => {
+      currentSearch = e.target.value;
+      currentPage = 1;
+      fetchLeads();
+    });
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.getAttribute('data-filter');
+        currentPage = 1;
+        fetchLeads();
+      });
+    });
+
+    function changePage(direction) {
+      currentPage += direction;
+      fetchLeads();
+    }
+
+    // Settings logic
+    let systemSettings = {};
+
+    function fetchSettings() {
+      fetch('/api/settings')
+        .then(r => r.json())
+        .then(settings => {
+          systemSettings = settings;
+          
+          // Populate settings tab fields
+          // Resend / SMTP
+          document.getElementById('settings-resend-key').value = settings.resend_api_key || "";
+          document.getElementById('settings-smtp-host').value = settings.smtp_host || "";
+          document.getElementById('settings-smtp-port').value = settings.smtp_port || "587";
+          document.getElementById('settings-smtp-user').value = settings.smtp_user || "";
+          document.getElementById('settings-smtp-pass').value = settings.smtp_pass || "";
+          
+          // AI brain
+          document.getElementById('settings-gemini-key').value = settings.gemini_api_key || "";
+          document.getElementById('settings-gemini-model').value = settings.gemini_model || "gemini-2.5-flash";
+          
+          // Templates
+          document.getElementById('settings-email-subject').value = settings.email_subject || "";
+          document.getElementById('settings-email-body').value = settings.email_body || "";
+          document.getElementById('settings-wa-template').value = settings.wa_template || "";
+
+          // Schedule & cities
+          document.getElementById('settings-cron-time').value = settings.cron_time || "09:00";
+          document.getElementById('settings-active-location-index').value = settings.active_location_index || "0";
+          
+          // Format textareas (one per line)
+          if (settings.keywords) {
+            const kws = JSON.parse(settings.keywords);
+            document.getElementById('settings-keywords').value = kws.join('\n');
+            
+            // Scraper keywords select populating
+            const selectEl = document.getElementById('scraper-keyword');
+            selectEl.innerHTML = '<option value="">All configured keywords</option>';
+            kws.forEach(kw => {
+              const opt = document.createElement('option');
+              opt.value = kw;
+              opt.innerText = kw;
+              selectEl.appendChild(opt);
+            });
+          }
+          if (settings.locations) {
+            const locs = JSON.parse(settings.locations);
+            document.getElementById('settings-locations').value = locs.join('\n');
+          }
+        })
+        .catch(err => console.error("Error fetching settings:", err));
+    }
+
+    // Save configurations
+    function saveSettingsToServer(updatedObj) {
+      fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedObj)
+      })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          alert("Settings successfully saved!");
+          fetchSettings();
+        } else {
+          alert("Error saving settings: " + d.error);
+        }
+      })
+      .catch(err => alert("Connection error: " + err.message));
+    }
+
+    function saveEmailSettings() {
+      const smtp_host = document.getElementById('settings-smtp-host').value;
+      const smtp_port = document.getElementById('settings-smtp-port').value;
+      const smtp_user = document.getElementById('settings-smtp-user').value;
+      const smtp_pass = document.getElementById('settings-smtp-pass').value;
+      const resend_api_key = document.getElementById('settings-resend-key').value;
+
+      saveSettingsToServer({ smtp_host, smtp_port, smtp_user, smtp_pass, resend_api_key });
+    }
+
+    function saveGeminiSettings() {
+      const gemini_api_key = document.getElementById('settings-gemini-key').value;
+      const gemini_model = document.getElementById('settings-gemini-model').value;
+
+      saveSettingsToServer({ gemini_api_key, gemini_model });
+    }
+
+    function saveTemplatesSetting() {
+      const email_subject = document.getElementById('settings-email-subject').value;
+      const email_body = document.getElementById('settings-email-body').value;
+      const wa_template = document.getElementById('settings-wa-template').value;
+
+      saveSettingsToServer({ email_subject, email_body, wa_template });
+    }
+
+    function saveScheduleSettings() {
+      const cron_time = document.getElementById('settings-cron-time').value;
+      saveSettingsToServer({ cron_time });
+    }
+
+    function saveKeywordsSetting() {
+      const rawText = document.getElementById('settings-keywords').value;
+      const keywords = rawText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+      saveSettingsToServer({ keywords: JSON.stringify(keywords) });
+    }
+
+    function saveLocationsSetting() {
+      const rawText = document.getElementById('settings-locations').value;
+      const active_location_index = document.getElementById('settings-active-location-index').value;
+      const locations = rawText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+      saveSettingsToServer({ 
+        locations: JSON.stringify(locations),
+        active_location_index: active_location_index.toString()
+      });
+    }
+
+    // Manual Crawler trigger
+    function triggerManualScrape() {
+      const city = document.getElementById('scraper-city').value;
+      const keyword = document.getElementById('scraper-keyword').value;
+      
+      if (!city) {
+        alert("Please enter a target city!");
+        return;
+      }
+
+      fetch('/api/scraper/trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ city, keyword })
+      })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          alert("Google Places crawl successfully triggered! Monitor progress on the top status panel or in Live Logs.");
+          document.querySelector('[data-tab=logs]').click(); // Switch to logs
+        } else {
+          alert("Failed to start scraper: " + d.error);
+        }
+      })
+      .catch(err => alert("Error triggering scrape: " + err.message));
+    }
+
+    // Trigger cron task immediately
+    function triggerImmediateCron() {
+      if (confirm("Are you sure you want to trigger the daily scheduled run right now? This will crawl the active rotated city and run outreach.")) {
+        fetch('/api/scheduler/trigger-now', { method: 'POST' })
+          .then(r => r.json())
+          .then(d => {
+            alert("Daily run process successfully initialized in background!");
+            document.querySelector('[data-tab=logs]').click();
+          });
+      }
+    }
+
+    // Test Outreach messaging
+    function sendTestWhatsApp() {
+      const text = document.getElementById('test-wa-message').value;
+      fetch('/api/outreach/test-wa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) alert("Test WhatsApp sent successfully!");
+        else alert("WhatsApp send failed: " + d.error);
+      });
+    }
+
+    function sendTestEmail() {
+      const to = document.getElementById('test-email-to').value;
+      const subject = document.getElementById('test-email-subject').value;
+      const body = document.getElementById('test-email-body').value;
+
+      if (!to) {
+        alert("Recipient email is required!");
+        return;
+      }
+
+      fetch('/api/outreach/test-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, subject, body })
+      })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) alert("Test outreach email sent successfully!");
+        else alert("Email sending failed: " + d.error);
+      });
+    }
+
+    // Outreach modal handlers
+    function openOutreachModal(leadId, type) {
+      fetch(`/api/leads?limit=100`) // quick fetch to find the specific lead details
+        .then(r => r.json())
+        .then(data => {
+          const lead = data.leads.find(l => l.id === leadId);
+          if (!lead) return;
+
+          document.getElementById('modal-lead-id').value = leadId;
+          document.getElementById('modal-outreach-type').value = type;
+          document.getElementById('modal-lead-title').innerText = `Manual Outreach: ${lead.business_name}`;
+
+          const subjectGroup = document.getElementById('modal-subject-group');
+          const bodyText = document.getElementById('modal-message-input');
+
+          if (type === 'whatsapp') {
+            subjectGroup.style.display = 'none';
+            // build preview based on templates
+            let temp = systemSettings.wa_template || "";
+            temp = temp.replace(/{{businessName}}/g, lead.business_name)
+                      .replace(/{{category}}/g, lead.category)
+                      .replace(/{{location}}/g, lead.location);
+            bodyText.value = temp;
+          } else {
+            subjectGroup.style.display = 'block';
+            document.getElementById('modal-subject-input').value = (systemSettings.email_subject || "").replace(/{{businessName}}/g, lead.business_name);
+            
+            let temp = systemSettings.email_body || "";
+            temp = temp.replace(/{{businessName}}/g, lead.business_name)
+                      .replace(/{{category}}/g, lead.category)
+                      .replace(/{{location}}/g, lead.location);
+            bodyText.value = temp;
+          }
+
+          document.getElementById('outreach-modal').style.display = 'flex';
+        });
+    }
+
+    function closeOutreachModal() {
+      document.getElementById('outreach-modal').style.display = 'none';
+    }
+
+    function executeManualOutreach() {
+      const leadId = document.getElementById('modal-lead-id').value;
+      const type = document.getElementById('modal-outreach-type').value;
+      const text = document.getElementById('modal-message-input').value;
+      
+      const btn = document.getElementById('modal-send-btn');
+      btn.disabled = true;
+      btn.innerText = "Sending...";
+
+      if (type === 'whatsapp') {
+        fetch('/api/outreach/whatsapp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leadId, text })
+        })
+        .then(r => r.json())
+        .then(d => {
+          btn.disabled = false;
+          btn.innerText = "Send Outreach Now";
+          if (d.success) {
+            alert("WhatsApp outreach successfully completed!");
+            closeOutreachModal();
+            fetchLeads();
+          } else {
+            alert("Outreach failed: " + d.error);
+          }
+        });
+      } else {
+        const subject = document.getElementById('modal-subject-input').value;
+        fetch('/api/outreach/email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leadId, subject, body: text })
+        })
+        .then(r => r.json())
+        .then(d => {
+          btn.disabled = false;
+          btn.innerText = "Send Outreach Now";
+          if (d.success) {
+            alert("Email outreach successfully completed!");
+            closeOutreachModal();
+            fetchLeads();
+          } else {
+            alert("Outreach failed: " + d.error);
+          }
+        });
+      }
+    }
+
+    // Notes modal handlers
+    function openNotesModal(leadId, notesEnc) {
+      document.getElementById('notes-lead-id').value = leadId;
+      document.getElementById('notes-textarea').value = decodeURIComponent(notesEnc);
+      document.getElementById('notes-modal').style.display = 'flex';
+    }
+
+    function closeNotesModal() {
+      document.getElementById('notes-modal').style.display = 'none';
+    }
+
+    function saveLeadNotes() {
+      const leadId = document.getElementById('notes-lead-id').value;
+      const notes = document.getElementById('notes-textarea').value;
+
+      fetch(`/api/leads/${leadId}/notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes })
+      })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          alert("Notes saved successfully!");
+          closeNotesModal();
+          fetchLeads();
+        } else {
+          alert("Error saving notes: " + d.error);
+        }
+      });
+    }
+
+    // Broadcast modal handlers
+    function openBroadcastModal() {
+      document.getElementById('broadcast-message-input').value = systemSettings.wa_template || "";
+      document.getElementById('broadcast-filter').value = currentFilter;
+      document.getElementById('broadcast-modal').style.display = 'flex';
+    }
+
+    function closeBroadcastModal() {
+      document.getElementById('broadcast-modal').style.display = 'none';
+    }
+
+    function executeBroadcast() {
+      const filter = document.getElementById('broadcast-filter').value;
+      const text = document.getElementById('broadcast-message-input').value;
+
+      if (!text) {
+        alert("Please enter a broadcast message!");
+        return;
+      }
+
+      const btn = document.getElementById('broadcast-send-btn');
+      btn.disabled = true;
+      btn.innerText = "Starting...";
+
+      fetch('/api/outreach/broadcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filter, text })
+      })
+      .then(r => r.json())
+      .then(d => {
+        btn.disabled = false;
+        btn.innerText = "Start Broadcast";
+        if (d.success) {
+          alert("WhatsApp broadcast successfully initialized in background! Switch to the 'Live Logs' tab to monitor progress in real-time.");
+          closeBroadcastModal();
+          document.querySelector('[data-tab=logs]').click();
+        } else {
+          alert("Failed to start broadcast: " + d.error);
+        }
+      })
+      .catch(err => {
+        btn.disabled = false;
+        btn.innerText = "Start Broadcast";
+        alert("Network error: " + err.message);
+      });
+    }
+
+    function exportLeadsCsv() {
+      const url = `/api/leads/export?filter=${currentFilter}&search=${currentSearch}`;
+      window.open(url, '_blank');
+    }
+  </script>
+</body>
+</html>

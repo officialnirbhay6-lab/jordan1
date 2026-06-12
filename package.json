@@ -1,0 +1,21 @@
+{
+  "name": "jordan-whatsapp-agent",
+  "version": "1.0.0",
+  "description": "WhatsApp Lead Generation & Outreach Agent named Jordan for 90's Kids Digital",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.43.4",
+    "@upstash/redis": "^1.31.5",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.13"
+  },
+  "author": "Antigravity",
+  "license": "ISC"
+}

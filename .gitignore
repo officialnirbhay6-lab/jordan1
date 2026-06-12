@@ -1,0 +1,8 @@
+node_modules/
+.env
+.DS_Store
+*.log
+.system_generated/
+scratch/
+check_connections.js
+test_connections.js
