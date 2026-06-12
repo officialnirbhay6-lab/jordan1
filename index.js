@@ -399,8 +399,11 @@ async function runLeadScraper(city, selectedKeyword = null) {
       await new Promise(resolve => setTimeout(resolve, 5000));
       attempts++;
 
-      const checkResponse = await fetch(`https://api.apify.com/v2/runs/${runId}?token=${apifyToken}`);
-      if (!checkResponse.ok) continue;
+      const checkResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}?token=${apifyToken}`);
+      if (!checkResponse.ok) {
+        console.error(`Apify status check returned non-ok: ${checkResponse.status}`);
+        continue;
+      }
 
       const checkData = await checkResponse.json();
       const status = checkData.data?.status;
