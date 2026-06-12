@@ -1131,15 +1131,21 @@ app.post('/api/whatsapp/webhook', async (req, res) => {
   const isOutgoing = notification.typeWebhook === 'outgoingMessageReceived';
   if (!isIncoming && !isOutgoing) return;
 
-  const sender = notification.senderData?.chatId || notification.senderData?.sender;
-  const chatId = notification.chatId;
-  const ownerWa = (process.env.WHATSAPP_OWNER || "917717766958") + "@c.us";
+  const sender = notification.senderData?.chatId || notification.senderData?.sender || "";
+  const chatId = notification.chatId || "";
+  
+  const cleanSender = sender.replace(/[^0-9]/g, '');
+  const cleanChatId = chatId.replace(/[^0-9]/g, '');
+  const cleanOwner = (process.env.WHATSAPP_OWNER || "917717766958").replace(/[^0-9]/g, '');
+
+  const isSenderOwner = cleanSender && (cleanSender.endsWith(cleanOwner) || cleanOwner.endsWith(cleanSender));
+  const isChatIdOwner = cleanChatId && (cleanChatId.endsWith(cleanOwner) || cleanOwner.endsWith(cleanChatId));
 
   // Security check: 
   // 1. If incoming, sender must be the owner.
   // 2. If outgoing, destination chatId must be the owner's own number (self-text).
-  if (isIncoming && sender !== ownerWa) return;
-  if (isOutgoing && chatId !== ownerWa) return;
+  if (isIncoming && !isSenderOwner) return;
+  if (isOutgoing && !isChatIdOwner) return;
 
   const messageText = notification.messageData?.textMessageData?.textMessage || "";
   if (!messageText) return;
