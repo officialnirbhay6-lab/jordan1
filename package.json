@@ -6,10 +6,6 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node index.js"
-  },
-  "engines": {
-    "node": ">=20.0.0"
-  },
   "dependencies": {
     "@supabase/supabase-js": "^2.43.4",
     "@upstash/redis": "^1.31.5",
