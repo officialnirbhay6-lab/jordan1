@@ -219,8 +219,9 @@ async function sendWhatsAppMessage(phone, text) {
   }
   
   const chatId = `${formattedPhone}@c.us`;
-
   const body = { chatId, message: text };
+
+  await logToAll(`[GreenAPI] Attempting to send message to ${chatId} (length: ${text.length})...`, 'info');
 
   return retryCall(async () => {
     const response = await fetch(url, {
@@ -230,9 +231,13 @@ async function sendWhatsAppMessage(phone, text) {
     });
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Green API returned status ${response.status}: ${errorText}`);
+      const errMessage = `Green API returned status ${response.status}: ${errorText}`;
+      await logToAll(`[GreenAPI Error] ${errMessage}`, 'error');
+      throw new Error(errMessage);
     }
-    return await response.json();
+    const resData = await response.json();
+    await logToAll(`[GreenAPI Success] Sent message successfully. MessageID: ${resData.idMessage}`, 'success');
+    return resData;
   });
 }
 
