@@ -1156,8 +1156,9 @@ app.post('/api/whatsapp/webhook', async (req, res) => {
 
   try {
     const cleanMsg = messageText.trim();
+    const lowerMsg = cleanMsg.toLowerCase();
 
-    if (cleanMsg.startsWith('/help')) {
+    if (lowerMsg.startsWith('/help')) {
       const menu = `🤖 *Jordan AI Manager Command Menu*
 
 📊 */status* - Check system stats & health
@@ -1168,7 +1169,7 @@ app.post('/api/whatsapp/webhook', async (req, res) => {
 💬 *Any other text* - Chat with Jordan!`;
       await sendWhatsAppMessage(process.env.WHATSAPP_OWNER, menu);
 
-    } else if (cleanMsg.startsWith('/status')) {
+    } else if (lowerMsg.startsWith('/status')) {
       let total = 0, high = 0, noWeb = 0, sent = 0;
       if (supabase) {
         const { count: t } = await supabase.from('leads').select('*', { count: 'exact', head: true });
@@ -1192,7 +1193,7 @@ app.post('/api/whatsapp/webhook', async (req, res) => {
       
       await sendWhatsAppMessage(process.env.WHATSAPP_OWNER, response);
 
-    } else if (cleanMsg.startsWith('/hot')) {
+    } else if (lowerMsg.startsWith('/hot')) {
       if (!supabase) return;
       const { data, error } = await supabase
         .from('leads')
@@ -1216,7 +1217,7 @@ app.post('/api/whatsapp/webhook', async (req, res) => {
 
       await sendWhatsAppMessage(process.env.WHATSAPP_OWNER, response);
 
-    } else if (cleanMsg.startsWith('/cities')) {
+    } else if (lowerMsg.startsWith('/cities')) {
       const locationsRaw = await getSetting('locations');
       const locations = JSON.parse(locationsRaw);
       const activeIdx = parseInt(await getSetting('active_location_index')) || 0;
@@ -1229,7 +1230,7 @@ app.post('/api/whatsapp/webhook', async (req, res) => {
 
       await sendWhatsAppMessage(process.env.WHATSAPP_OWNER, response);
 
-    } else if (cleanMsg.startsWith('/scrape')) {
+    } else if (lowerMsg.startsWith('/scrape')) {
       const parts = cleanMsg.split(' ');
       const city = parts.slice(1).join(' ').trim();
       if (!city) {
@@ -1240,7 +1241,7 @@ app.post('/api/whatsapp/webhook', async (req, res) => {
       runLeadScraper(city);
       await sendWhatsAppMessage(process.env.WHATSAPP_OWNER, `🚀 Started Google Places crawler for *"${city}"* in the background! I will ping you the digest when finished.`);
 
-    } else if (cleanMsg.startsWith('/broadcast')) {
+    } else if (lowerMsg.startsWith('/broadcast')) {
       const parts = cleanMsg.split(' ');
       const text = parts.slice(1).join(' ').trim();
       if (!text) {
