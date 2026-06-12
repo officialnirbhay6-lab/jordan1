@@ -1125,13 +1125,21 @@ app.post('/api/whatsapp/webhook', async (req, res) => {
   res.status(200).send("OK");
 
   const notification = req.body;
-  if (!notification || notification.typeWebhook !== 'incomingMessageReceived') return;
+  if (!notification) return;
+
+  const isIncoming = notification.typeWebhook === 'incomingMessageReceived';
+  const isOutgoing = notification.typeWebhook === 'outgoingMessageReceived';
+  if (!isIncoming && !isOutgoing) return;
 
   const sender = notification.senderData?.chatId || notification.senderData?.sender;
+  const chatId = notification.chatId;
   const ownerWa = (process.env.WHATSAPP_OWNER || "917717766958") + "@c.us";
 
-  // Security check: Only listen to the owner's commands!
-  if (sender !== ownerWa) return;
+  // Security check: 
+  // 1. If incoming, sender must be the owner.
+  // 2. If outgoing, destination chatId must be the owner's own number (self-text).
+  if (isIncoming && sender !== ownerWa) return;
+  if (isOutgoing && chatId !== ownerWa) return;
 
   const messageText = notification.messageData?.textMessageData?.textMessage || "";
   if (!messageText) return;
@@ -1329,7 +1337,15 @@ app.listen(PORT, async () => {
     fetch(setWebhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ webhookUrl })
+      body: JSON.stringify({
+        webhookUrl,
+        incomingMessageReceived: true,
+        outgoingMessageReceived: true,
+        outgoingAPIMessageReceived: false,
+        incomingCallReceived: false,
+        deviceStatus: false,
+        stateInstanceChanged: false
+      })
     }).then(r => r.json()).then(d => {
       console.log(`📡 WhatsApp Webhook auto-configured to: ${webhookUrl}. Response:`, d);
     }).catch(err => console.error("Error setting WhatsApp Webhook:", err.message));
