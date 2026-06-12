@@ -1348,12 +1348,14 @@ app.listen(PORT, async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         webhookUrl,
-        incomingMessageReceived: true,
-        outgoingMessageReceived: true,
-        outgoingAPIMessageReceived: false,
-        incomingCallReceived: false,
-        deviceStatus: false,
-        stateInstanceChanged: false
+        incomingWebhook: "yes",
+        outgoingMessageWebhook: "yes",
+        outgoingWebhook: "no",
+        outgoingAPIMessageWebhook: "no",
+        incomingCallWebhook: "no",
+        deviceWebhook: "no",
+        statusInstanceWebhook: "no",
+        stateWebhook: "no"
       })
     }).then(r => r.json()).then(d => {
       console.log(`📡 WhatsApp Webhook auto-configured to: ${webhookUrl}. Response:`, d);
