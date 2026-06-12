@@ -389,9 +389,9 @@ async function runLeadScraper(city, selectedKeyword = null) {
     currentScraperRun.status = "Crawling Google Places";
     currentScraperRun.progress = 30;
 
-    // Polling Apify run status (Max 3 mins)
+    // Polling Apify run status (Max 15 mins)
     const startTime = Date.now();
-    const timeoutMs = 3 * 60 * 1000;
+    const timeoutMs = 15 * 60 * 1000;
     let finished = false;
     let attempts = 0;
 
@@ -405,7 +405,7 @@ async function runLeadScraper(city, selectedKeyword = null) {
       const checkData = await checkResponse.json();
       const status = checkData.data?.status;
 
-      currentScraperRun.progress = Math.min(90, 30 + Math.floor((attempts * 5) / 180 * 60));
+      currentScraperRun.progress = Math.min(90, 30 + Math.floor((attempts * 5) / 900 * 60));
       await logToAll(`Crawl status: ${status} (Elapsed: ${Math.floor((Date.now() - startTime)/1000)}s)`, 'info');
 
       if (['SUCCEEDED', 'FAILED', 'TIMED-OUT', 'ABORTED'].includes(status)) {
@@ -419,7 +419,7 @@ async function runLeadScraper(city, selectedKeyword = null) {
     }
 
     if (!finished) {
-      throw new Error("Apify crawl timed out after 3 minutes.");
+      throw new Error("Apify crawl timed out after 15 minutes.");
     }
 
     currentScraperRun.status = "Fetching results";
