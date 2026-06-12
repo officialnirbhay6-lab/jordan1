@@ -17,6 +17,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Redirect root to dashboard
+app.get('/', (req, res) => {
+  res.redirect('/dashboard.html');
+});
+
 // Global state for in-memory tracker & SSE
 let activeClients = [];
 let currentScraperRun = {
