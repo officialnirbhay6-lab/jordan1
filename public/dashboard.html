@@ -855,6 +855,74 @@
       from { opacity: 0; transform: translateY(-30px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    /* Custom Premium Notification Toasts */
+    #toast-container {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 380px;
+      width: calc(100% - 48px);
+    }
+
+    .toast {
+      background: rgba(15, 15, 15, 0.9);
+      color: var(--text-main);
+      border: 1px solid var(--card-border);
+      padding: 14px 20px;
+      border-radius: 8px;
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      backdrop-filter: blur(8px);
+      transform: translateX(120%);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+      opacity: 0;
+    }
+
+    .toast.show {
+      transform: translateX(0);
+      opacity: 1;
+    }
+
+    .toast-success {
+      border-left: 4px solid var(--green);
+      box-shadow: 0 0 16px rgba(37, 211, 102, 0.15), inset 0 0 8px rgba(37, 211, 102, 0.05);
+    }
+
+    .toast-error {
+      border-left: 4px solid #ff3333;
+      box-shadow: 0 0 16px rgba(255, 51, 51, 0.15);
+    }
+
+    .toast-info {
+      border-left: 4px solid var(--gold);
+      box-shadow: 0 0 16px rgba(212, 175, 55, 0.15);
+    }
+
+    .toast-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 768px) {
+      #toast-container {
+        top: 16px;
+        right: 16px;
+        left: 16px;
+        max-width: 100%;
+        width: auto;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1498,6 +1566,49 @@
   </div>
 
   <script>
+    // Premium Toast Notification Helper
+    function showToast(message, type = 'success') {
+      let container = document.getElementById('toast-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+      }
+
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+
+      let iconHTML = '';
+      if (type === 'success') {
+        iconHTML = '<i data-lucide="check-circle" style="color: var(--green); width: 20px; height: 20px;"></i>';
+      } else if (type === 'error') {
+        iconHTML = '<i data-lucide="alert-triangle" style="color: #ff3333; width: 20px; height: 20px;"></i>';
+      } else {
+        iconHTML = '<i data-lucide="info" style="color: var(--gold); width: 20px; height: 20px;"></i>';
+      }
+
+      toast.innerHTML = `
+        <div class="toast-icon">${iconHTML}</div>
+        <div class="toast-content" style="font-weight: 500;">${message}</div>
+      `;
+
+      container.appendChild(toast);
+      
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+
+      toast.offsetHeight; // force reflow
+      toast.classList.add('show');
+
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+          toast.remove();
+        }, 300);
+      }, 4000);
+    }
+
     // Tab switching logic
     const navItems = document.querySelectorAll('.nav-item');
     const tabContents = document.querySelectorAll('.tab-content');
@@ -1853,13 +1964,13 @@
       .then(r => r.json())
       .then(d => {
         if (d.success) {
-          alert("Settings successfully saved!");
+          showToast("Settings successfully saved!", "success");
           fetchSettings();
         } else {
-          alert("Error saving settings: " + d.error);
+          showToast("Error saving settings: " + d.error, "error");
         }
       })
-      .catch(err => alert("Connection error: " + err.message));
+      .catch(err => showToast("Connection error: " + err.message, "error"));
     }
 
     function saveEmailSettings() {
@@ -1914,7 +2025,7 @@
       const keyword = document.getElementById('scraper-keyword').value;
       
       if (!city) {
-        alert("Please enter a target city!");
+        showToast("Please enter a target city!", "error");
         return;
       }
 
@@ -1926,13 +2037,13 @@
       .then(r => r.json())
       .then(d => {
         if (d.success) {
-          alert("Google Places crawl successfully triggered! Monitor progress on the top status panel or in Live Logs.");
+          showToast("Google Places crawl successfully triggered! Monitor progress on the top status panel or in Live Logs.", "success");
           document.querySelector('[data-tab=logs]').click(); // Switch to logs
         } else {
-          alert("Failed to start scraper: " + d.error);
+          showToast("Failed to start scraper: " + d.error, "error");
         }
       })
-      .catch(err => alert("Error triggering scrape: " + err.message));
+      .catch(err => showToast("Error triggering scrape: " + err.message, "error"));
     }
 
     // Trigger cron task immediately
@@ -1941,7 +2052,7 @@
         fetch('/api/scheduler/trigger-now', { method: 'POST' })
           .then(r => r.json())
           .then(d => {
-            alert("Daily run process successfully initialized in background!");
+            showToast("Daily run process successfully initialized in background!", "success");
             document.querySelector('[data-tab=logs]').click();
           });
       }
@@ -1957,8 +2068,8 @@
       })
       .then(r => r.json())
       .then(d => {
-        if (d.success) alert("Test WhatsApp sent successfully!");
-        else alert("WhatsApp send failed: " + d.error);
+        if (d.success) showToast("Test WhatsApp sent successfully!", "success");
+        else showToast("WhatsApp send failed: " + d.error, "error");
       });
     }
 
@@ -1968,7 +2079,7 @@
       const body = document.getElementById('test-email-body').value;
 
       if (!to) {
-        alert("Recipient email is required!");
+        showToast("Recipient email is required!", "error");
         return;
       }
 
@@ -1979,8 +2090,8 @@
       })
       .then(r => r.json())
       .then(d => {
-        if (d.success) alert("Test outreach email sent successfully!");
-        else alert("Email sending failed: " + d.error);
+        if (d.success) showToast("Test outreach email sent successfully!", "success");
+        else showToast("Email sending failed: " + d.error, "error");
       });
     }
 
@@ -2046,11 +2157,11 @@
           btn.disabled = false;
           btn.innerText = "Send Outreach Now";
           if (d.success) {
-            alert("WhatsApp outreach successfully completed!");
+            showToast("WhatsApp outreach successfully completed!", "success");
             closeOutreachModal();
             fetchLeads();
           } else {
-            alert("Outreach failed: " + d.error);
+            showToast("Outreach failed: " + d.error, "error");
           }
         });
       } else {
@@ -2065,11 +2176,11 @@
           btn.disabled = false;
           btn.innerText = "Send Outreach Now";
           if (d.success) {
-            alert("Email outreach successfully completed!");
+            showToast("Email outreach successfully completed!", "success");
             closeOutreachModal();
             fetchLeads();
           } else {
-            alert("Outreach failed: " + d.error);
+            showToast("Outreach failed: " + d.error, "error");
           }
         });
       }
@@ -2098,11 +2209,11 @@
       .then(r => r.json())
       .then(d => {
         if (d.success) {
-          alert("Notes saved successfully!");
+          showToast("Notes saved successfully!", "success");
           closeNotesModal();
           fetchLeads();
         } else {
-          alert("Error saving notes: " + d.error);
+          showToast("Error saving notes: " + d.error, "error");
         }
       });
     }
@@ -2123,7 +2234,7 @@
       const text = document.getElementById('broadcast-message-input').value;
 
       if (!text) {
-        alert("Please enter a broadcast message!");
+        showToast("Please enter a broadcast message!", "error");
         return;
       }
 
@@ -2141,17 +2252,17 @@
         btn.disabled = false;
         btn.innerText = "Start Broadcast";
         if (d.success) {
-          alert("WhatsApp broadcast successfully initialized in background! Switch to the 'Live Logs' tab to monitor progress in real-time.");
+          showToast("WhatsApp broadcast successfully initialized in background! Switch to the 'Live Logs' tab to monitor progress in real-time.", "success");
           closeBroadcastModal();
           document.querySelector('[data-tab=logs]').click();
         } else {
-          alert("Failed to start broadcast: " + d.error);
+          showToast("Failed to start broadcast: " + d.error, "error");
         }
       })
       .catch(err => {
         btn.disabled = false;
         btn.innerText = "Start Broadcast";
-        alert("Network error: " + err.message);
+        showToast("Network error: " + err.message, "error");
       });
     }
 
