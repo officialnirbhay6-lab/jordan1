@@ -1307,26 +1307,118 @@ app.post('/api/whatsapp/webhook', async (req, res) => {
       const geminiModel = await getSetting('gemini_model');
 
       if (geminiKey) {
-        const sysPrompt = `You are Jordan, the sharp, witty, Hinglish-friendly manager chatbot for Nirbhay Kumar, founder of 90's Kids Digital (Bhagalpur, Bihar). 
-Nirbhay has texted you: "${cleanMsg}". 
-Reply wittily, acting as his BDM/manager. Keep the reply short (1-2 sentences), highly engaging, and in natural Hinglish (Hindi + English blend). 
-If he asks for status/leads, tell him to use /status or /hot commands.`;
+        const sysPrompt = `You are Jordan, the sharp, witty, Hinglish-friendly manager chatbot for Nirbhay Kumar, founder of 90's Kids Digital (Bhagalpur, Bihar).
+Nirbhay has texted you: "${cleanMsg}".
+
+Analyze his message to see if he is requesting a specific system action.
+Supported actions:
+1. "scrape": Trigger a Google Places crawl for a specific city and optionally a specific keyword/category (e.g., "bhagalpur k doctors scrape kar", "scrape clinics in Patna", "patna me gym search karo", "scrape bhagalpur hotel").
+2. "status": Check system stats/leads count (e.g., "what is the status", "status check", "leads check karo").
+3. "hot": Get top 5 hot prospects (e.g., "hot leads dikhao", "prospects list check karo").
+4. "cities": List target rotation cities (e.g., "list cities", "rotation cities batao").
+5. "chat": General greetings, chatting, or commands not matching above (e.g., "hello", "kaise ho", "sun").
+
+You must reply with a JSON object in this format (no markdown formatting, no backticks, just raw JSON):
+{
+  "action": "scrape" | "status" | "hot" | "cities" | "chat",
+  "city": "Name of city extracted, capitalized (only for action 'scrape')",
+  "keyword": "Name of keyword/category extracted in English, e.g., 'doctor', 'hotel', 'restaurant', 'gym' (only for action 'scrape' if specified, else null)",
+  "reply": "A witty reply in Hinglish acting as his BDM/manager. If triggering an action, tell him you are executing it now. Keep it short (1-2 sentences)."
+}`;
 
         try {
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel || "gemini-2.5-flash"}:generateContent?key=${geminiKey}`;
           const res = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents: [{ parts: [{ text: sysPrompt }] }] })
+            body: JSON.stringify({ 
+              contents: [{ parts: [{ text: sysPrompt }] }],
+              generationConfig: {
+                responseMimeType: "application/json"
+              }
+            })
           });
           if (res.ok) {
             const data = await res.json();
-            const textReply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Ji boss!";
-            await sendWhatsAppMessage(targetReplyNum, textReply.trim());
+            const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            let parsed = { action: "chat", reply: "Ji boss!" };
+            try {
+              parsed = JSON.parse(rawText.trim());
+            } catch (jsonErr) {
+              parsed = { action: "chat", reply: rawText.trim() || "Ji boss!" };
+            }
+
+            // Send Gemini's witty reply first
+            await sendWhatsAppMessage(targetReplyNum, parsed.reply);
+
+            // Execute action
+            if (parsed.action === 'scrape') {
+              const city = parsed.city || "Bhagalpur, Bihar";
+              const keyword = parsed.keyword || null;
+              runLeadScraper(city, keyword);
+            } else if (parsed.action === 'status') {
+              let total = 0, high = 0, noWeb = 0, sent = 0;
+              if (supabase) {
+                const { count: t } = await supabase.from('leads').select('*', { count: 'exact', head: true });
+                const { count: h } = await supabase.from('leads').select('*', { count: 'exact', head: true }).gte('rating', 4.0);
+                const { count: nw } = await supabase.from('leads').select('*', { count: 'exact', head: true }).eq('has_website', false);
+                const { count: s } = await supabase.from('leads').select('*', { count: 'exact', head: true }).eq('email_sent', true);
+                total = t || 0;
+                high = h || 0;
+                noWeb = nw || 0;
+                sent = s || 0;
+              }
+              const response = `📊 *Jordan System Status*
+------------------------
+📈 *Total Leads:* ${total}
+⭐ *High Potential:* ${high}
+🌐 *No Website:* ${noWeb}
+📧 *Emails Sent:* ${sent}
+⏰ *Scheduler:* Active (Daily at ${await getSetting('cron_time')})
+📍 *Active City Index:* ${await getSetting('active_location_index')}`;
+              await sendWhatsAppMessage(targetReplyNum, response);
+
+            } else if (parsed.action === 'hot') {
+              if (supabase) {
+                const { data, error } = await supabase
+                  .from('leads')
+                  .select('*')
+                  .eq('has_website', false)
+                  .order('rating', { ascending: false })
+                  .limit(5);
+
+                if (!error && data && data.length > 0) {
+                  let response = `🎯 *Top 5 Hot Prospects (No Website):*\n`;
+                  data.forEach((l, idx) => {
+                    response += `\n${idx + 1}. *${l.business_name}*
+   📍 City: ${l.location} | ⭐ Rating: ${l.rating || '-'}
+   📞 Phone: ${l.phone}
+   💼 Category: ${l.category}\n`;
+                  });
+                  await sendWhatsAppMessage(targetReplyNum, response);
+                } else {
+                  await sendWhatsAppMessage(targetReplyNum, "🎯 No hot prospects without websites found in database currently.");
+                }
+              }
+
+            } else if (parsed.action === 'cities') {
+              const locationsRaw = await getSetting('locations');
+              const locations = JSON.parse(locationsRaw);
+              const activeIdx = parseInt(await getSetting('active_location_index')) || 0;
+
+              let response = `📍 *Target Cities Rotation list:*\n`;
+              locations.forEach((loc, idx) => {
+                const activeMarker = idx === activeIdx ? '👉 ' : '   ';
+                response += `\n${activeMarker}${idx}. ${loc}`;
+              });
+              await sendWhatsAppMessage(targetReplyNum, response);
+            }
+
           } else {
             await sendWhatsAppMessage(targetReplyNum, "Boss, Gemini API responded with error, but main chiz: /help type karke commands dekh lijiye!");
           }
-        } catch {
+        } catch (err) {
+          await logToAll(`Error in Gemini chatbot intent parser: ${err.message}`, 'error');
           await sendWhatsAppMessage(targetReplyNum, "Boss, AI connection error. Command run karne ke liye /help send karein.");
         }
       } else {
