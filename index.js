@@ -1152,7 +1152,10 @@ app.post('/api/whatsapp/webhook', async (req, res) => {
   // Security check: 
   // 1. If incoming, sender must be one of the owners.
   // 2. If outgoing, destination chatId must be one of the owners' own numbers.
-  if (isIncoming && !isSenderOwner) return;
+  if (isIncoming && !isSenderOwner) {
+    await logToAll(`⚠️ Webhook ignored: sender ${sender} (${cleanSender}) is not in WHATSAPP_OWNER list: [${owners.join(', ')}]`, 'info');
+    return;
+  }
   if (isOutgoing && !isChatIdOwner) return;
 
   // The reply must go back to the exact phone number that sent the message
