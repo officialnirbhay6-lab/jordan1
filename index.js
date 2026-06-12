@@ -66,8 +66,8 @@ const DEFAULT_SETTINGS = {
   smtp_user: "",
   smtp_pass: "",
   email_subject: "Boost your sales online - 90's Kids Digital",
-  email_body: "Hi {{businessName}},\n\nWe noticed your business in {{location}} is doing great, but you don't have a website yet! In today's digital era, having a website is super important.\n\nAapka business online presence scale up karne me hum help kar sakte hain. Let's build a stunning website and run local marketing ads for you.\n\nWarm regards,\nNirbhay Kumar\n90's Kids Digital",
-  wa_template: "Hey {{businessName}}, this is Jordan from 90's Kids Digital. Humne dekha aapka {{category}} business solid chal raha hai in {{location}}, but online search visibility improve ki ja sakti hai. Aapka website link nahi mil raha. Let's scale it up? Reply if you're interested!",
+  email_body: "Hi {{businessName}},\n\nWe noticed your business in {{location}} is doing great, but you don't have a website yet! In today's digital era, having a website is super important.\n\nAapka business online presence scale up karne me hum help kar sakte hain. Let's build a stunning website and run local marketing ads for you. You can check out our presence and work at https://90skids.digital\n\nWarm regards,\nNirbhay Kumar\n90's Kids Digital\nWebsite: https://90skids.digital",
+  wa_template: "Hey {{businessName}}, this is Jordan from 90's Kids Digital. Humne dekha aapka {{category}} business solid chal raha hai in {{location}}, but online search visibility improve ki ja sakti hai. Aapka website link nahi mil raha. Let's scale it up? Visit https://90skids.digital to see our work. Reply if you're interested!",
   keywords: JSON.stringify(["clinic", "real estate agency", "hotel", "school", "coaching center", "hospital", "interior designer", "insurance agency", "travel agency", "CA firm", "law firm", "event planner", "gym", "salon", "restaurant"]),
   locations: JSON.stringify(["Bhagalpur, Bihar", "Patna, Bihar", "Ranchi, Jharkhand", "Kolkata, West Bengal", "Delhi NCR", "Mumbai, Maharashtra", "Bengaluru, Karnataka", "Pune, Maharashtra"]),
   active_location_index: "0",
@@ -201,6 +201,15 @@ async function bootstrapSettings() {
       if (error || !data) {
         await supabase.from('settings').insert({ key, value });
         console.log(`Bootstrapped setting: ${key}`);
+      } else {
+        // If settings exist but don't contain 90skids.digital for email_body or wa_template, update them
+        if ((key === 'email_body' || key === 'wa_template') && !data.value.includes('90skids.digital')) {
+          await supabase.from('settings').update({ value }).eq('key', key);
+          if (redis) {
+            await redis.del(`settings:${key}`); // clear cache
+          }
+          console.log(`Updated existing setting ${key} to include 90skids.digital`);
+        }
       }
     } catch (err) {
       console.error(`Error bootstrapping ${key}:`, err.message);
@@ -289,9 +298,12 @@ async function sendSMTPEmail(to, subject, textBody, config) {
 
 // AI Brain: Gemini Content Generation
 async function generateAIPitch(businessName, category, location, key, model) {
-  const prompt = `Write a personalized business sales pitch in Hinglish (Hindi + English blend) from Jordan, an expert digital growth strategist at 90's Kids Digital (Bhagalpur, Bihar). 
+  const prompt = `Write a highly personalized business sales pitch in Hinglish (Hindi + English blend) from Jordan, an expert digital growth strategist at 90's Kids Digital (Bhagalpur, Bihar). 
 The pitch is for a local business named "${businessName}" which operates in the category "${category}" in "${location}".
 Context: This business does not have a website. Show them why this is costing them customers in ${location} and how we can build a high-converting website and run local ads to boost sales.
+Requirements:
+1. You MUST mention our official website: https://90skids.digital so they can check out our digital presence, active work, and portfolio.
+2. Personalize the pitch specifically to their business category "${category}" in "${location}". Address their specific customer needs (e.g., if it's a clinic, talk about patients finding them; if it's a hotel, talk about guest bookings, etc.).
 Tone: Sharp, witty, culturally relevant to ${location}, energetic, professional yet friendly.
 Provide the response strictly as a JSON object, with no markdown code blocks, no backticks, and no extra text. The output must parse directly as:
 {
