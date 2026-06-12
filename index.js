@@ -1141,23 +1141,29 @@ app.post('/api/whatsapp/webhook', async (req, res) => {
   
   const cleanSender = sender.replace(/[^0-9]/g, '');
   const cleanChatId = chatId.replace(/[^0-9]/g, '');
-  const cleanOwner = (process.env.WHATSAPP_OWNER || "917717766958").replace(/[^0-9]/g, '');
+  
+  // Parse WHATSAPP_OWNER as a comma-separated list of digits
+  const ownerInput = process.env.WHATSAPP_OWNER || "917717766958";
+  const owners = ownerInput.split(',').map(n => n.trim().replace(/[^0-9]/g, '')).filter(Boolean);
 
-  const isSenderOwner = cleanSender && (cleanSender.endsWith(cleanOwner) || cleanOwner.endsWith(cleanSender));
-  const isChatIdOwner = cleanChatId && (cleanChatId.endsWith(cleanOwner) || cleanOwner.endsWith(cleanChatId));
+  const isSenderOwner = cleanSender && owners.some(owner => cleanSender.endsWith(owner) || owner.endsWith(cleanSender));
+  const isChatIdOwner = cleanChatId && owners.some(owner => cleanChatId.endsWith(owner) || owner.endsWith(cleanChatId));
 
   // Security check: 
-  // 1. If incoming, sender must be the owner.
-  // 2. If outgoing, destination chatId must be the owner's own number (self-text).
+  // 1. If incoming, sender must be one of the owners.
+  // 2. If outgoing, destination chatId must be one of the owners' own numbers.
   if (isIncoming && !isSenderOwner) return;
   if (isOutgoing && !isChatIdOwner) return;
+
+  // The reply must go back to the exact phone number that sent the message
+  const targetReplyNum = isIncoming ? cleanSender : cleanChatId;
 
   const messageText = notification.messageData?.textMessageData?.textMessage || 
                       notification.messageData?.extendedTextMessageData?.text || 
                       "";
   if (!messageText) return;
 
-  await logToAll(`💬 Owner WhatsApp Command Received: "${messageText}"`, 'info');
+  await logToAll(`💬 Owner WhatsApp Command Received: "${messageText}" (responding to ${targetReplyNum})`, 'info');
 
   try {
     const cleanMsg = messageText.trim();
@@ -1172,7 +1178,7 @@ app.post('/api/whatsapp/webhook', async (req, res) => {
 🚀 */scrape [city]* - Trigger crawl (e.g. \`/scrape Patna\`)
 📢 */broadcast [msg]* - WhatsApp all No Website leads
 💬 *Any other text* - Chat with Jordan!`;
-      await sendWhatsAppMessage(process.env.WHATSAPP_OWNER, menu);
+      await sendWhatsAppMessage(targetReplyNum, menu);
 
     } else if (lowerMsg.startsWith('/status')) {
       let total = 0, high = 0, noWeb = 0, sent = 0;
@@ -1196,7 +1202,7 @@ app.post('/api/whatsapp/webhook', async (req, res) => {
 ⏰ *Scheduler:* Active (Daily at ${await getSetting('cron_time')})
 📍 *Active City Index:* ${await getSetting('active_location_index')}`;
       
-      await sendWhatsAppMessage(process.env.WHATSAPP_OWNER, response);
+      await sendWhatsAppMessage(targetReplyNum, response);
 
     } else if (lowerMsg.startsWith('/hot')) {
       if (!supabase) return;
@@ -1208,7 +1214,7 @@ app.post('/api/whatsapp/webhook', async (req, res) => {
         .limit(5);
 
       if (error || !data || data.length === 0) {
-        await sendWhatsAppMessage(process.env.WHATSAPP_OWNER, "🎯 No hot prospects without websites found in database currently.");
+        await sendWhatsAppMessage(targetReplyNum, "🎯 No hot prospects without websites found in database currently.");
         return;
       }
 
@@ -1220,7 +1226,7 @@ app.post('/api/whatsapp/webhook', async (req, res) => {
    💼 Category: ${l.category}\n`;
       });
 
-      await sendWhatsAppMessage(process.env.WHATSAPP_OWNER, response);
+      await sendWhatsAppMessage(targetReplyNum, response);
 
     } else if (lowerMsg.startsWith('/cities')) {
       const locationsRaw = await getSetting('locations');
@@ -1233,34 +1239,34 @@ app.post('/api/whatsapp/webhook', async (req, res) => {
         response += `\n${activeMarker}${idx}. ${loc}`;
       });
 
-      await sendWhatsAppMessage(process.env.WHATSAPP_OWNER, response);
+      await sendWhatsAppMessage(targetReplyNum, response);
 
     } else if (lowerMsg.startsWith('/scrape')) {
       const parts = cleanMsg.split(' ');
       const city = parts.slice(1).join(' ').trim();
       if (!city) {
-        await sendWhatsAppMessage(process.env.WHATSAPP_OWNER, "❌ Please specify a city name, e.g. \`/scrape Patna\`");
+        await sendWhatsAppMessage(targetReplyNum, "❌ Please specify a city name, e.g. \`/scrape Patna\`");
         return;
       }
 
       runLeadScraper(city);
-      await sendWhatsAppMessage(process.env.WHATSAPP_OWNER, `🚀 Started Google Places crawler for *"${city}"* in the background! I will ping you the digest when finished.`);
+      await sendWhatsAppMessage(targetReplyNum, `🚀 Started Google Places crawler for *"${city}"* in the background! I will ping you the digest when finished.`);
 
     } else if (lowerMsg.startsWith('/broadcast')) {
       const parts = cleanMsg.split(' ');
       const text = parts.slice(1).join(' ').trim();
       if (!text) {
-        await sendWhatsAppMessage(process.env.WHATSAPP_OWNER, "❌ Please specify a broadcast message, e.g. \`/broadcast Hey {{businessName}}...\`");
+        await sendWhatsAppMessage(targetReplyNum, "❌ Please specify a broadcast message, e.g. \`/broadcast Hey {{businessName}}...\`");
         return;
       }
 
       const { data: targets, error } = await supabase.from('leads').select('*').eq('has_website', false);
       if (error || !targets || targets.length === 0) {
-        await sendWhatsAppMessage(process.env.WHATSAPP_OWNER, "❌ No target leads found for the broadcast.");
+        await sendWhatsAppMessage(targetReplyNum, "❌ No target leads found for the broadcast.");
         return;
       }
 
-      await sendWhatsAppMessage(process.env.WHATSAPP_OWNER, `📢 Initializing WhatsApp broadcast to ${targets.length} leads in background...`);
+      await sendWhatsAppMessage(targetReplyNum, `📢 Initializing WhatsApp broadcast to ${targets.length} leads in background...`);
 
       (async () => {
         let sentCount = 0;
@@ -1278,7 +1284,7 @@ app.post('/api/whatsapp/webhook', async (req, res) => {
             sentCount++;
           } catch {}
         }
-        await sendWhatsAppMessage(process.env.WHATSAPP_OWNER, `✅ WhatsApp Broadcast completed! Successfully sent to ${sentCount}/${targets.length} leads.`);
+        await sendWhatsAppMessage(targetReplyNum, `✅ WhatsApp Broadcast completed! Successfully sent to ${sentCount}/${targets.length} leads.`);
       })();
 
     } else {
@@ -1301,15 +1307,15 @@ If he asks for status/leads, tell him to use /status or /hot commands.`;
           if (res.ok) {
             const data = await res.json();
             const textReply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Ji boss!";
-            await sendWhatsAppMessage(process.env.WHATSAPP_OWNER, textReply.trim());
+            await sendWhatsAppMessage(targetReplyNum, textReply.trim());
           } else {
-            await sendWhatsAppMessage(process.env.WHATSAPP_OWNER, "Boss, Gemini API responded with error, but main chiz: /help type karke commands dekh lijiye!");
+            await sendWhatsAppMessage(targetReplyNum, "Boss, Gemini API responded with error, but main chiz: /help type karke commands dekh lijiye!");
           }
         } catch {
-          await sendWhatsAppMessage(process.env.WHATSAPP_OWNER, "Boss, AI connection error. Command run karne ke liye /help send karein.");
+          await sendWhatsAppMessage(targetReplyNum, "Boss, AI connection error. Command run karne ke liye /help send karein.");
         }
       } else {
-        await sendWhatsAppMessage(process.env.WHATSAPP_OWNER, "Boss, Gemini key config nahi hai. Commands dekhne ke liye /help send karein.");
+        await sendWhatsAppMessage(targetReplyNum, "Boss, Gemini key config nahi hai. Commands dekhne ke liye /help send karein.");
       }
     }
   } catch (err) {
