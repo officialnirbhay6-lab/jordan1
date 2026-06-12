@@ -369,7 +369,7 @@ async function runLeadScraper(city, selectedKeyword = null) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         searchStringsArray: searchQueries,
-        maxCrawledPlacesPerSearch: 20,
+        maxCrawledPlacesPerSearch: 10,
         language: "en"
       })
     });
@@ -559,8 +559,9 @@ async function runLeadScraper(city, selectedKeyword = null) {
 
     await logToAll(`✅ Jordan Scraper Finished! Added ${newLeadsCount} new leads. Emailed ${emailOutreachCount} hot targets.`, 'success');
 
-    // Send Daily WhatsApp Digest to Owner
-    const ownerWa = process.env.WHATSAPP_OWNER || "917717766958";
+    // Send Daily WhatsApp Digest to all Owners
+    const ownerInput = process.env.WHATSAPP_OWNER || "917717766958";
+    const owners = ownerInput.split(',').map(n => n.trim().replace(/[^0-9]/g, '')).filter(Boolean);
     const appUrl = process.env.RAILWAY_STATIC_URL ? `https://${process.env.RAILWAY_STATIC_URL}` : `http://localhost:${PORT}`;
     const dateStr = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
 
@@ -568,11 +569,13 @@ async function runLeadScraper(city, selectedKeyword = null) {
 📍 ${city} | 📊 New: ${newLeadsCount} | ⭐ Hot: ${emailOutreachCount} | 📧 Mailed: ${emailOutreachCount}
 🔗 Dashboard: ${appUrl}`;
 
-    try {
-      await sendWhatsAppMessage(ownerWa, digestMsg);
-      await logToAll(`WhatsApp daily digest sent to owner (${ownerWa}).`, 'success');
-    } catch (waErr) {
-      await logToAll(`Failed to send WhatsApp daily digest: ${waErr.message}`, 'error');
+    for (const ownerWa of owners) {
+      try {
+        await sendWhatsAppMessage(ownerWa, digestMsg);
+        await logToAll(`WhatsApp daily digest sent to owner (${ownerWa}).`, 'success');
+      } catch (waErr) {
+        await logToAll(`Failed to send WhatsApp daily digest to ${ownerWa}: ${waErr.message}`, 'error');
+      }
     }
 
   } catch (err) {
@@ -1358,6 +1361,30 @@ You must reply with a JSON object in this format (no markdown formatting, no bac
             if (parsed.action === 'scrape') {
               const city = parsed.city || "Bhagalpur, Bihar";
               const keyword = parsed.keyword || null;
+
+              // Instantly check for cached leads in DB to respond under 10 seconds
+              (async () => {
+                try {
+                  if (supabase) {
+                    let query = supabase.from('leads').select('business_name, rating, phone').eq('location', city);
+                    if (keyword) {
+                      query = query.ilike('category', `%${keyword}%`);
+                    }
+                    const { data: cachedLeads } = await query.limit(5);
+                    if (cachedLeads && cachedLeads.length > 0) {
+                      let cacheMsg = `🎯 *Instant Leads from DB for ${city}${keyword ? ' (' + keyword + ')' : ''}:*\n`;
+                      cachedLeads.forEach((lead, idx) => {
+                        cacheMsg += `\n${idx + 1}. *${lead.business_name}* | ⭐ ${lead.rating || '-'} | 📞 ${lead.phone}`;
+                      });
+                      cacheMsg += `\n\n🔄 Background me fresh leads scrape aur auto-outreach process shuru kar di gayi hai! Complete hote hi digest mil jayega.`;
+                      await sendWhatsAppMessage(targetReplyNum, cacheMsg);
+                    }
+                  }
+                } catch (cacheErr) {
+                  console.error("Error fetching cached leads:", cacheErr.message);
+                }
+              })();
+
               runLeadScraper(city, keyword);
             } else if (parsed.action === 'status') {
               let total = 0, high = 0, noWeb = 0, sent = 0;
