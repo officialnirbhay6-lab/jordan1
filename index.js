@@ -1147,7 +1147,9 @@ app.post('/api/whatsapp/webhook', async (req, res) => {
   if (isIncoming && !isSenderOwner) return;
   if (isOutgoing && !isChatIdOwner) return;
 
-  const messageText = notification.messageData?.textMessageData?.textMessage || "";
+  const messageText = notification.messageData?.textMessageData?.textMessage || 
+                      notification.messageData?.extendedTextMessageData?.text || 
+                      "";
   if (!messageText) return;
 
   await logToAll(`💬 Owner WhatsApp Command Received: "${messageText}"`, 'info');
