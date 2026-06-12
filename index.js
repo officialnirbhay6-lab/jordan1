@@ -369,7 +369,7 @@ async function runLeadScraper(city, selectedKeyword = null) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         searchStringsArray: searchQueries,
-        maxCrawledPlacesPerSearch: 10,
+        maxCrawledPlacesPerSearch: 60,
         language: "en"
       })
     });

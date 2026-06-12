@@ -1702,6 +1702,8 @@
       consoleEl.innerHTML = '<div class="console-line system">=== Screen Cleared ===</div>';
     }
 
+    let lastRunActiveState = false;
+
     // Status poller to check current scraping activities
     function startStatusPoller() {
       setInterval(() => {
@@ -1710,8 +1712,9 @@
           .then(health => {
             const panel = document.getElementById('active-scraper-panel');
             const run = health.currentRun;
+            const isRunActive = !!(run && run.active);
             
-            if (run && run.active) {
+            if (isRunActive) {
               panel.style.display = 'block';
               document.getElementById('active-scraper-title').innerText = `Scraper Active: ${run.city}`;
               document.getElementById('active-scraper-status').innerText = `${run.status} (Current Keyword: ${run.keyword})`;
@@ -1721,6 +1724,15 @@
             } else {
               panel.style.display = 'none';
             }
+
+            // If a run has just finished, refresh stats and tables automatically
+            if (lastRunActiveState && !isRunActive) {
+              fetchStats();
+              if (typeof fetchLeads === 'function') {
+                fetchLeads();
+              }
+            }
+            lastRunActiveState = isRunActive;
           })
           .catch(err => console.error("Error in status poller:", err));
       }, 5000);
