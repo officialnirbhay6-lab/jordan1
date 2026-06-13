@@ -401,7 +401,6 @@ async function runLeadScraper(city, selectedKeyword = null) {
         searchStringsArray: searchQueries,
         maxCrawledPlacesPerSearch: 150,
         language: "en",
-        maximumLeadsEnrichmentRecords: 150,
         scrapeSocialMediaProfiles: {
           facebooks: true,
           instagrams: true,
@@ -941,20 +940,6 @@ app.post('/api/leads/:id/notes', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/test-apify/:runId', async (req, res) => {
-  const token = process.env.APIFY_TOKEN;
-  try {
-    const runResponse = await fetch(`https://api.apify.com/v2/actor-runs/${req.params.runId}?token=${token}`);
-    if (!runResponse.ok) {
-      return res.status(400).send(await runResponse.text());
-    }
-    const runData = await runResponse.json();
-    res.json(runData);
-  } catch (e) {
-    res.status(500).send(e.message);
   }
 });
 
