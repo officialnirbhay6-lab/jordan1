@@ -944,6 +944,20 @@ app.post('/api/leads/:id/notes', async (req, res) => {
   }
 });
 
+app.get('/api/test-apify/:runId', async (req, res) => {
+  const token = process.env.APIFY_TOKEN;
+  try {
+    const runResponse = await fetch(`https://api.apify.com/v2/actor-runs/${req.params.runId}?token=${token}`);
+    if (!runResponse.ok) {
+      return res.status(400).send(await runResponse.text());
+    }
+    const runData = await runResponse.json();
+    res.json(runData);
+  } catch (e) {
+    res.status(500).send(e.message);
+  }
+});
+
 // Fetch settings
 app.get('/api/settings', async (req, res) => {
   const settings = {};
