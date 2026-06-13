@@ -748,9 +748,9 @@ async function getPuppeteerLeads(city, selectedKeyword) {
 
             if (details.phone && !details.website) {
               allLeads.push(details);
-              console.log(`Scraped (No Website): ${details.name} - ${details.phone}`);
+              await logToAll(`Scraped (No Website): ${details.name} - ${details.phone}`, 'success');
             } else if (details.phone && details.website) {
-              console.log(`Skipped (Has Website): ${details.name} - ${details.website}`);
+              await logToAll(`Skipped (Has Website): ${details.name}`, 'info');
             }
           } catch (detailErr) {
             console.error(`Error scraping link ${idx}:`, detailErr.message);
