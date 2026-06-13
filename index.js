@@ -738,10 +738,10 @@ async function getPuppeteerLeads(city, selectedKeyword) {
               break;
             }
 
-            if (currentCount === previousCount) {
+            if (currentCount === previousCount && currentCount > 0) {
               noChangeCount++;
               if (noChangeCount >= 4) break; // Reached end of listings list
-            } else {
+            } else if (currentCount > 0) {
               noChangeCount = 0;
             }
             previousCount = currentCount;
