@@ -1946,17 +1946,21 @@
           // Format textareas (one per line)
           if (settings.keywords) {
             let kws = [];
-            try {
-              kws = JSON.parse(settings.keywords);
-              if (!Array.isArray(kws)) kws = [kws.toString()];
-            } catch (e) {
-              const raw = settings.keywords;
-              if (raw.includes('\n')) {
-                kws = raw.split('\n').map(l => l.trim()).filter(Boolean);
-              } else if (raw.includes(',')) {
-                kws = raw.split(',').map(l => l.trim()).filter(Boolean);
-              } else if (raw.trim()) {
-                kws = [raw.trim()];
+            if (Array.isArray(settings.keywords)) {
+              kws = settings.keywords;
+            } else {
+              try {
+                kws = JSON.parse(settings.keywords);
+                if (!Array.isArray(kws)) kws = [kws.toString()];
+              } catch (e) {
+                const raw = settings.keywords.toString();
+                if (raw.includes('\n')) {
+                  kws = raw.split('\n').map(l => l.trim()).filter(Boolean);
+                } else if (raw.includes(',')) {
+                  kws = raw.split(',').map(l => l.trim()).filter(Boolean);
+                } else if (raw.trim()) {
+                  kws = [raw.trim()];
+                }
               }
             }
             document.getElementById('settings-keywords').value = kws.join('\n');
@@ -1973,17 +1977,21 @@
           }
           if (settings.locations) {
             let locs = [];
-            try {
-              locs = JSON.parse(settings.locations);
-              if (!Array.isArray(locs)) locs = [locs.toString()];
-            } catch (e) {
-              const raw = settings.locations;
-              if (raw.includes('\n')) {
-                locs = raw.split('\n').map(l => l.trim()).filter(Boolean);
-              } else if (raw.includes(',')) {
-                locs = raw.split(',').map(l => l.trim()).filter(Boolean);
-              } else if (raw.trim()) {
-                locs = [raw.trim()];
+            if (Array.isArray(settings.locations)) {
+              locs = settings.locations;
+            } else {
+              try {
+                locs = JSON.parse(settings.locations);
+                if (!Array.isArray(locs)) locs = [locs.toString()];
+              } catch (e) {
+                const raw = settings.locations.toString();
+                if (raw.includes('\n')) {
+                  locs = raw.split('\n').map(l => l.trim()).filter(Boolean);
+                } else if (raw.includes(',')) {
+                  locs = raw.split(',').map(l => l.trim()).filter(Boolean);
+                } else if (raw.trim()) {
+                  locs = [raw.trim()];
+                }
               }
             }
             document.getElementById('settings-locations').value = locs.join('\n');
