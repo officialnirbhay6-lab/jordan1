@@ -367,6 +367,154 @@ Provide the response strictly as a JSON object, with no markdown code blocks, no
 }
 
 // Lead Scraper Workflow
+// Local Website Email Crawler Helper
+async function crawlWebsiteForEmail(url) {
+  if (!url) return "";
+  try {
+    let targetUrl = url;
+    if (!/^https?:\/\//i.test(targetUrl)) {
+      targetUrl = 'http://' + targetUrl;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout
+
+    const response = await fetch(targetUrl, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) return "";
+    const html = await response.text();
+    
+    // Find emails in homepage HTML
+    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,20}/g;
+    const matches = html.match(emailRegex) || [];
+    const cleanEmails = matches.filter(e => {
+      const lower = e.toLowerCase();
+      return !/\.(png|jpg|jpeg|gif|svg|webp|css|js)$/.test(lower) && !lower.startsWith('email@');
+    });
+
+    if (cleanEmails.length > 0) {
+      return [...new Set(cleanEmails)][0];
+    }
+
+    // Try contact/about pages
+    const contactPageRegex = /href="([^"]*contact[^"]*)"|href="([^"]*about[^"]*)"/i;
+    const pageMatch = html.match(contactPageRegex);
+    const link = pageMatch ? (pageMatch[1] || pageMatch[2]) : null;
+
+    if (link) {
+      let contactUrl = link;
+      if (!/^https?:\/\//i.test(contactUrl)) {
+        const origin = new URL(targetUrl).origin;
+        contactUrl = origin + (link.startsWith('/') ? '' : '/') + link;
+      }
+
+      const contactController = new AbortController();
+      const contactTimeoutId = setTimeout(() => contactController.abort(), 6000);
+
+      const contactResponse = await fetch(contactUrl, {
+        signal: contactController.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+      clearTimeout(contactTimeoutId);
+
+      if (contactResponse.ok) {
+        const contactHtml = await contactResponse.text();
+        const contactMatches = contactHtml.match(emailRegex) || [];
+        const cleanContactEmails = contactMatches.filter(e => {
+          const lower = e.toLowerCase();
+          return !/\.(png|jpg|jpeg|gif|svg|webp|css|js)$/.test(lower) && !lower.startsWith('email@');
+        });
+        if (cleanContactEmails.length > 0) {
+          return [...new Set(cleanContactEmails)][0];
+        }
+      }
+    }
+  } catch (err) {
+    console.error(`Error crawling ${url}:`, err.message);
+  }
+  return "";
+}
+
+// Google Places API lead fetcher helper
+async function getGooglePlacesLeads(city, selectedKeyword) {
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY;
+  if (!apiKey) throw new Error("GOOGLE_PLACES_API_KEY is missing.");
+
+  const keywords = selectedKeyword ? [selectedKeyword] : await getSettingArray('keywords', ["clinic", "doctor", "hospital"]);
+  const allLeads = [];
+
+  for (const kw of keywords) {
+    const query = `${kw} in ${city}`;
+    await logToAll(`Querying Google Places API for: "${query}"...`, 'info');
+
+    const textSearchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${apiKey}`;
+    try {
+      const response = await fetch(textSearchUrl);
+      if (!response.ok) continue;
+
+      const data = await response.json();
+      const results = data.results || [];
+      await logToAll(`Found ${results.length} candidate places for "${kw}". Fetching details...`, 'info');
+
+      // Fetch details up to 35 candidates per search query to guarantee 30+ phone numbers
+      const candidates = results.slice(0, 35);
+
+      for (const place of candidates) {
+        if (!place.place_id) continue;
+
+        const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=name,formatted_phone_number,international_phone_number,website,rating,formatted_address,types&key=${apiKey}`;
+        try {
+          const detailsResponse = await fetch(detailsUrl);
+          if (!detailsResponse.ok) continue;
+
+          const detailsData = await detailsResponse.json();
+          const result = detailsData.result;
+          if (!result) continue;
+
+          const phone = result.international_phone_number || result.formatted_phone_number;
+          if (!phone) continue;
+
+          const category = result.types && result.types.length > 0 ? result.types[0].replace(/_/g, ' ') : kw;
+          allLeads.push({
+            name: result.name || place.name,
+            phone: phone,
+            website: result.website || "",
+            category: category,
+            rating: result.rating || place.rating || 0,
+            address: result.formatted_address || place.formatted_address || ""
+          });
+        } catch (err) {
+          console.error(`Error fetching details for place ${place.place_id}:`, err.message);
+        }
+      }
+    } catch (err) {
+      console.error(`Google Places Search error for "${kw}":`, err.message);
+    }
+  }
+
+  // Deduplicate by phone
+  const uniqueLeads = [];
+  const seenPhones = new Set();
+  for (const lead of allLeads) {
+    const cleanPhone = lead.phone.replace(/\D/g, '');
+    if (!seenPhones.has(cleanPhone)) {
+      seenPhones.add(cleanPhone);
+      uniqueLeads.push(lead);
+    }
+  }
+
+  return uniqueLeads;
+}
+
+// Lead Scraper Workflow
 async function runLeadScraper(city, selectedKeyword = null) {
   currentScraperRun.active = true;
   currentScraperRun.progress = 5;
@@ -378,99 +526,163 @@ async function runLeadScraper(city, selectedKeyword = null) {
   await logToAll(`🚀 Jordan Lead Scraper started for location: ${city}`, 'info');
 
   try {
-    const apifyToken = process.env.APIFY_TOKEN;
-    if (!apifyToken) throw new Error("APIFY_TOKEN environment variable is missing.");
+    const googleApiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY;
+    let items = [];
 
-    // Retrieve keywords list
-    const keywords = selectedKeyword ? [selectedKeyword] : await getSettingArray('keywords', ["clinic", "doctor", "hospital"]);
-    
-    currentScraperRun.keyword = selectedKeyword || "All Keywords";
-    await logToAll(`Keywords to crawl: ${keywords.join(', ')}`, 'info');
+    if (googleApiKey) {
+      currentScraperRun.status = "Querying Google Places API";
+      currentScraperRun.progress = 20;
+      await logToAll("Using Official Google Places API...", "info");
+      
+      const rawLeads = await getGooglePlacesLeads(city, selectedKeyword);
+      currentScraperRun.progress = 60;
+      currentScraperRun.status = "Crawling websites for emails";
 
-    // Build search queries
-    const searchQueries = keywords.map(kw => `${kw} in ${city}`);
-    
-    currentScraperRun.status = "Sending request to Apify";
-    currentScraperRun.progress = 15;
+      await logToAll(`Fetched ${rawLeads.length} leads with phone numbers. Starting local email crawl...`, 'info');
 
-    // Trigger Apify actor (compass/crawler-google-places)
-    const runResponse = await fetch(`https://api.apify.com/v2/acts/compass~crawler-google-places/runs?token=${apifyToken}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        searchStringsArray: searchQueries,
-        maxCrawledPlacesPerSearch: 150,
-        language: "en",
-        scrapeSocialMediaProfiles: {
-          facebooks: true,
-          instagrams: true,
-          youtubes: false,
-          tiktoks: false,
-          twitters: false
+      for (let i = 0; i < rawLeads.length; i++) {
+        const lead = rawLeads[i];
+        currentScraperRun.progress = 60 + Math.floor((i / rawLeads.length) * 30);
+        let email = "";
+        if (lead.website) {
+          await logToAll(`Crawling website: ${lead.website} for emails...`, 'info');
+          email = await crawlWebsiteForEmail(lead.website);
+          if (email) {
+            await logToAll(`Found email: ${email} for ${lead.name}`, 'success');
+          }
         }
-      })
-    });
+        items.push({
+          title: lead.name,
+          phone: lead.phone,
+          website: lead.website,
+          email: email,
+          categoryName: lead.category,
+          totalScore: lead.rating,
+          address: lead.address
+        });
+      }
+    } else {
+      // Fallback to Apify Google Places Scraper
+      const apifyToken = process.env.APIFY_TOKEN;
+      if (!apifyToken) throw new Error("Neither GOOGLE_PLACES_API_KEY nor APIFY_TOKEN is configured.");
 
-    if (!runResponse.ok) {
-      const errTxt = await runResponse.text();
-      throw new Error(`Failed to start Apify crawl: ${errTxt}`);
-    }
+      await logToAll("Using Apify Google Places Scraper (Fallback)...", "info");
 
-    const runData = await runResponse.json();
-    const runId = runData.data?.id;
-    const datasetId = runData.data?.defaultDatasetId;
+      const keywords = selectedKeyword ? [selectedKeyword] : await getSettingArray('keywords', ["clinic", "doctor", "hospital"]);
+      currentScraperRun.keyword = selectedKeyword || "All Keywords";
+      await logToAll(`Keywords to crawl: ${keywords.join(', ')}`, 'info');
 
-    if (!runId || !datasetId) throw new Error("Apify run ID or dataset ID not received.");
+      const searchQueries = keywords.map(kw => `${kw} in ${city}`);
+      
+      currentScraperRun.status = "Sending request to Apify";
+      currentScraperRun.progress = 15;
 
-    await logToAll(`Apify crawl started. Run ID: ${runId}. Polling every 5s...`, 'info');
-    currentScraperRun.status = "Crawling Google Places";
-    currentScraperRun.progress = 30;
+      const runResponse = await fetch(`https://api.apify.com/v2/acts/compass~crawler-google-places/runs?token=${apifyToken}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          searchStringsArray: searchQueries,
+          maxCrawledPlacesPerSearch: 150,
+          language: "en",
+          scrapeSocialMediaProfiles: {
+            facebooks: true,
+            instagrams: true,
+            youtubes: false,
+            tiktoks: false,
+            twitters: false
+          }
+        })
+      });
 
-    // Polling Apify run status (Max 15 mins)
-    const startTime = Date.now();
-    const timeoutMs = 15 * 60 * 1000;
-    let finished = false;
-    let attempts = 0;
-
-    while (Date.now() - startTime < timeoutMs) {
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      attempts++;
-
-      const checkResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}?token=${apifyToken}`);
-      if (!checkResponse.ok) {
-        console.error(`Apify status check returned non-ok: ${checkResponse.status}`);
-        continue;
+      if (!runResponse.ok) {
+        const errTxt = await runResponse.text();
+        throw new Error(`Failed to start Apify crawl: ${errTxt}`);
       }
 
-      const checkData = await checkResponse.json();
-      const status = checkData.data?.status;
+      const runData = await runResponse.json();
+      const runId = runData.data?.id;
+      const datasetId = runData.data?.defaultDatasetId;
 
-      currentScraperRun.progress = Math.min(90, 30 + Math.floor((attempts * 5) / 900 * 60));
-      await logToAll(`Crawl status: ${status} (Elapsed: ${Math.floor((Date.now() - startTime)/1000)}s)`, 'info');
+      if (!runId || !datasetId) throw new Error("Apify run ID or dataset ID not received.");
 
-      if (['SUCCEEDED', 'FAILED', 'TIMED-OUT', 'ABORTED'].includes(status)) {
-        if (status === 'SUCCEEDED') {
-          finished = true;
-        } else {
-          throw new Error(`Apify crawl completed with status: ${status}`);
+      await logToAll(`Apify crawl started. Run ID: ${runId}. Polling every 5s...`, 'info');
+      currentScraperRun.status = "Crawling Google Places";
+      currentScraperRun.progress = 30;
+
+      const startTime = Date.now();
+      const timeoutMs = 15 * 60 * 1000;
+      let finished = false;
+      let attempts = 0;
+
+      while (Date.now() - startTime < timeoutMs) {
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        attempts++;
+
+        const checkResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}?token=${apifyToken}`);
+        if (!checkResponse.ok) {
+          console.error(`Apify status check returned non-ok: ${checkResponse.status}`);
+          continue;
         }
-        break;
+
+        const checkData = await checkResponse.json();
+        const status = checkData.data?.status;
+
+        currentScraperRun.progress = Math.min(90, 30 + Math.floor((attempts * 5) / 900 * 60));
+        await logToAll(`Crawl status: ${status} (Elapsed: ${Math.floor((Date.now() - startTime)/1000)}s)`, 'info');
+
+        if (['SUCCEEDED', 'FAILED', 'TIMED-OUT', 'ABORTED'].includes(status)) {
+          if (status === 'SUCCEEDED') {
+            finished = true;
+          } else {
+            throw new Error(`Apify crawl completed with status: ${status}`);
+          }
+          break;
+        }
+      }
+
+      if (!finished) {
+        throw new Error("Apify crawl timed out after 15 minutes.");
+      }
+
+      currentScraperRun.status = "Fetching results";
+      currentScraperRun.progress = 92;
+      await logToAll(`Fetching results from Apify dataset ${datasetId}...`, 'info');
+
+      const itemsResponse = await fetch(`https://api.apify.com/v2/datasets/${datasetId}/items?token=${apifyToken}`);
+      if (!itemsResponse.ok) throw new Error("Failed to fetch dataset items.");
+
+      const rawItems = await itemsResponse.json();
+      await logToAll(`Retrieved ${rawItems.length} items from Apify. Processing...`, 'info');
+
+      for (const item of rawItems) {
+        const phone = item.phoneUnformatted || item.phone;
+        if (!phone) continue;
+
+        let email = "";
+        if (item.email) {
+          email = item.email;
+        } else if (Array.isArray(item.emails) && item.emails.length > 0) {
+          email = item.emails[0];
+        } else if (typeof item.emails === 'string' && item.emails.trim()) {
+          email = item.emails.split(',')[0].trim();
+        } else if (item.contactEmail) {
+          email = item.contactEmail;
+        } else if (Array.isArray(item.scraped_emails) && item.scraped_emails.length > 0) {
+          const first = item.scraped_emails[0];
+          email = typeof first === 'object' ? (first.email || first.value || "") : first;
+        }
+
+        items.push({
+          title: item.title || item.name,
+          phone: phone,
+          website: item.website || "",
+          email: email,
+          categoryName: item.categoryName || item.subTitle || "Local Business",
+          totalScore: item.totalScore || item.stars || 0,
+          address: item.address || ""
+        });
       }
     }
-
-    if (!finished) {
-      throw new Error("Apify crawl timed out after 15 minutes.");
-    }
-
-    currentScraperRun.status = "Fetching results";
-    currentScraperRun.progress = 92;
-    await logToAll(`Fetching results from Apify dataset ${datasetId}...`, 'info');
-
-    const itemsResponse = await fetch(`https://api.apify.com/v2/datasets/${datasetId}/items?token=${apifyToken}`);
-    if (!itemsResponse.ok) throw new Error("Failed to fetch dataset items.");
-
-    const items = await itemsResponse.json();
-    await logToAll(`Retrieved ${items.length} items from Apify. Processing...`, 'info');
 
     // Save leads to Supabase
     let newLeadsCount = 0;
