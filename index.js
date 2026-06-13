@@ -627,17 +627,27 @@ async function triggerDailyOutreachFlow() {
   const locations = await getSettingArray('locations', ["Bhagalpur, Bihar"]);
   let activeIndex = parseInt(await getSetting('active_location_index')) || 0;
 
+  // Bounds check safety
+  if (activeIndex >= locations.length || activeIndex < 0) {
+    activeIndex = 0;
+    await saveSetting('active_location_index', '0');
+  }
+
   // Select city
   const city = locations[activeIndex];
 
   // Rotate index for tomorrow
-  const nextIndex = (activeIndex + 1) % locations.length;
+  const nextIndex = locations.length > 0 ? (activeIndex + 1) % locations.length : 0;
   await saveSetting('active_location_index', nextIndex.toString());
 
-  await logToAll(`Rotating location. Active city: ${city}. Next rotation city: ${locations[nextIndex]}`, "info");
+  await logToAll(`Rotating location. Active city: ${city}. Next rotation city: ${locations[nextIndex] || "None"}`, "info");
 
   // Run scraper
-  runLeadScraper(city);
+  if (city) {
+    runLeadScraper(city);
+  } else {
+    await logToAll("⚠️ No city selected for daily outreach rotation. Locations list might be empty.", "error");
+  }
 }
 
 // Setup or re-setup Cron job based on settings
@@ -1180,33 +1190,25 @@ app.post('/api/whatsapp/webhook', async (req, res) => {
   if (!notification) return;
 
   const isIncoming = notification.typeWebhook === 'incomingMessageReceived';
-  const isOutgoing = notification.typeWebhook === 'outgoingMessageReceived';
-  if (!isIncoming && !isOutgoing) return;
+  if (!isIncoming) return;
 
   const sender = notification.senderData?.chatId || notification.senderData?.sender || "";
-  const chatId = notification.chatId || "";
-  
   const cleanSender = sender.replace(/[^0-9]/g, '');
-  const cleanChatId = chatId.replace(/[^0-9]/g, '');
   
   // Parse WHATSAPP_OWNER as a comma-separated list of digits
   const ownerInput = process.env.WHATSAPP_OWNER || "917717766958";
   const owners = ownerInput.split(',').map(n => n.trim().replace(/[^0-9]/g, '')).filter(Boolean);
 
   const isSenderOwner = cleanSender && owners.some(owner => cleanSender.endsWith(owner) || owner.endsWith(cleanSender));
-  const isChatIdOwner = cleanChatId && owners.some(owner => cleanChatId.endsWith(owner) || owner.endsWith(cleanChatId));
 
-  // Security check: 
-  // 1. If incoming, sender must be one of the owners.
-  // 2. If outgoing, destination chatId must be one of the owners' own numbers.
-  if (isIncoming && !isSenderOwner) {
+  // Security check: sender must be one of the owners.
+  if (!isSenderOwner) {
     await logToAll(`⚠️ Webhook ignored: sender ${sender} (${cleanSender}) is not in WHATSAPP_OWNER list: [${owners.join(', ')}]`, 'info');
     return;
   }
-  if (isOutgoing && !isChatIdOwner) return;
 
   // The reply must go back to the exact phone number that sent the message
-  const targetReplyNum = isIncoming ? cleanSender : cleanChatId;
+  const targetReplyNum = cleanSender;
 
   const messageText = notification.messageData?.textMessageData?.textMessage || 
                       notification.messageData?.extendedTextMessageData?.text || 
@@ -1524,7 +1526,7 @@ app.listen(PORT, async () => {
       body: JSON.stringify({
         webhookUrl,
         incomingWebhook: "yes",
-        outgoingMessageWebhook: "yes",
+        outgoingMessageWebhook: "no",
         outgoingWebhook: "no",
         outgoingAPIMessageWebhook: "no",
         incomingCallWebhook: "no",
