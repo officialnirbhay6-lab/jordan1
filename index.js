@@ -647,218 +647,443 @@ const KEYWORD_SYNONYMS = {
   "event planner": ["wedding planner", "party planner", "decorators"]
 };
 
-// Local Puppeteer Google Maps Scraper helper
-async function getPuppeteerLeads(city, selectedKeyword) {
+// Get smart synonyms from Gemini for initial keyword search expansion
+async function getSmartSynonymsFromGemini(keyword, geminiKey, geminiModel) {
+  if (!geminiKey) return [];
+  try {
+    await logToAll(`Querying Gemini to find smart related categories for "${keyword}"...`, 'info');
+    const prompt = `You are a digital marketing strategist. Generate a list of exactly 4 related business types, categories, or synonyms in English that would be searched on Google Maps to find leads in the same or closely related niche as "${keyword}".
+Rules:
+- The categories should be common business categories/types found on Google Maps.
+- Do not repeat "${keyword}".
+- Return strictly as a JSON array of strings, e.g. ["category1", "category2", "category3", "category4"]. Do not include markdown formatting, markdown code blocks, backticks, or any conversational text.`;
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel || "gemini-2.5-flash"}:generateContent?key=${geminiKey}`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json"
+        }
+      })
+    });
+
+    if (response.ok) {
+      const resJson = await response.json();
+      const rawText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (rawText) {
+        const parsed = JSON.parse(rawText.trim());
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const cleaned = parsed.map(s => s.toLowerCase().trim());
+          await logToAll(`Gemini suggested related categories: ${cleaned.join(', ')}`, 'success');
+          return cleaned;
+        }
+      }
+    } else {
+      const errText = await response.text();
+      console.error(`Gemini API error generating synonyms: ${errText}`);
+    }
+  } catch (err) {
+    console.error(`Error querying Gemini for synonyms:`, err.message);
+  }
+  return [];
+}
+
+// Get more smart synonyms from Gemini if lead count is low
+async function getMoreSmartSynonymsFromGemini(originalKeyword, searchedList, geminiKey, geminiModel) {
+  if (!geminiKey) return [];
+  try {
+    const prompt = `You are a business lead-generation strategist.
+We are searching on Google Maps for businesses related to the original category "${originalKeyword}".
+So far, we have searched the following terms: ${JSON.stringify(searchedList)}.
+However, we still need more leads. Generate exactly 4 additional, distinct business categories or search terms (different from the ones already searched) in the same or closely related industry.
+Rules:
+- These must be common categories/business types searchable on Google Maps.
+- Return strictly as a JSON array of strings, e.g. ["category1", "category2", "category3", "category4"]. Do not include markdown formatting, markdown code blocks, backticks, or any conversational text.`;
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel || "gemini-2.5-flash"}:generateContent?key=${geminiKey}`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json"
+        }
+      })
+    });
+
+    if (response.ok) {
+      const resJson = await response.json();
+      const rawText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (rawText) {
+        const parsed = JSON.parse(rawText.trim());
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const cleaned = parsed.map(s => s.toLowerCase().trim());
+          await logToAll(`Gemini suggested extra related categories to continue: ${cleaned.join(', ')}`, 'success');
+          return cleaned;
+        }
+      }
+    } else {
+      const errText = await response.text();
+      console.error(`Gemini API error generating extra synonyms: ${errText}`);
+    }
+  } catch (err) {
+    console.error(`Error querying Gemini for extra synonyms:`, err.message);
+  }
+  return [];
+}
+
+// Realistic User Agents pool
+const USER_AGENTS = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0'
+];
+
+// Scrapes a single keyword using isolated Puppeteer session to prevent rate limits
+async function scrapeSingleKeywordWithPuppeteer(city, kw, currentLeadsCount) {
   const puppeteer = require('puppeteer');
+  const leadsCollected = [];
+  const maxLeadsNeeded = 60 - currentLeadsCount;
+
+  if (maxLeadsNeeded <= 0) return [];
+
+  const searchQuery = `${kw} in ${city}`;
+  const url = `https://www.google.com/maps/search/${encodeURIComponent(searchQuery)}`;
+  
+  await logToAll(`[Puppeteer] Launching session for "${searchQuery}"...`, 'info');
+
+  const launchOptions = {
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--window-size=1280,800'
+    ]
+  };
+
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+
+  const randomUA = USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+
+  let browser;
+  try {
+    browser = await puppeteer.launch(launchOptions);
+    const page = await browser.newPage();
+    await page.setUserAgent(randomUA);
+    await page.setViewport({ width: 1280, height: 800 });
+
+    await logToAll(`[Puppeteer] Loading: ${url}`, 'info');
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
+
+    // Scroll sidebar to load results (usually div[role="feed"])
+    let listContainerSelector = 'div[role="feed"]';
+    try {
+      await page.waitForSelector(listContainerSelector, { timeout: 15000 });
+    } catch (e) {
+      listContainerSelector = null;
+    }
+
+    if (listContainerSelector) {
+      await logToAll(`[Puppeteer] Scrolling results pane to load places for "${kw}"...`, 'info');
+      let previousCount = 0;
+      let noChangeCount = 0;
+
+      for (let s = 0; s < 35; s++) {
+        await page.evaluate((sel) => {
+          const el = document.querySelector(sel);
+          if (el) el.scrollBy(0, el.scrollHeight);
+        }, listContainerSelector);
+
+        await new Promise(r => setTimeout(r, 1200));
+
+        const currentCount = await page.evaluate(() => {
+          return document.querySelectorAll('a[href*="/maps/place/"]').length;
+        });
+
+        if (currentCount >= 180) {
+          await logToAll(`[Puppeteer] Loaded ${currentCount} listings. Stopping scroll.`, 'info');
+          break;
+        }
+
+        if (currentCount === previousCount) {
+          noChangeCount++;
+          const maxNoChange = (currentCount === 0) ? 6 : 4;
+          if (noChangeCount >= maxNoChange) {
+            await logToAll(`[Puppeteer] Scroll count didn't change for ${noChangeCount} scrolls. Breaking scroll loop.`, 'info');
+            break;
+          }
+        } else {
+          noChangeCount = 0;
+        }
+        previousCount = currentCount;
+      }
+    }
+
+    // Get place anchor links and check if they have websites from the feed DOM
+    const placeCandidates = await page.evaluate(() => {
+      const cards = Array.from(document.querySelectorAll('div[role="feed"] > div, div.Nv2y1d'));
+      const list = [];
+      
+      for (const card of cards) {
+        const placeAnchor = card.querySelector('a[href*="/maps/place/"]');
+        if (!placeAnchor) continue;
+        
+        const hasWeb = !!card.querySelector('a[data-item-id="authority"], a[href^="http"]:not([href*="google.com"]):not([href*="google.co.in"]):not([href*="gstatic.com"])');
+        
+        list.push({
+          link: placeAnchor.href,
+          hasWebsite: hasWeb
+        });
+      }
+      
+      if (list.length === 0) {
+        const anchors = Array.from(document.querySelectorAll('a[href*="/maps/place/"]'));
+        return anchors.map(a => ({ link: a.href, hasWebsite: false }));
+      }
+      
+      return list;
+    });
+
+    // Deduplicate candidates
+    const seenLinks = new Set();
+    const uniqueCandidates = [];
+    for (const cand of placeCandidates) {
+      if (!seenLinks.has(cand.link)) {
+        seenLinks.add(cand.link);
+        uniqueCandidates.push(cand);
+      }
+    }
+
+    const filteredCandidates = uniqueCandidates.filter(c => !c.hasWebsite).slice(0, 150);
+    await logToAll(`[Puppeteer] Found ${uniqueCandidates.length} unique place links for "${kw}". Skipped ${uniqueCandidates.length - filteredCandidates.length} with websites. ${filteredCandidates.length} candidates remaining.`, 'info');
+
+    if (filteredCandidates.length === 0) {
+      if (browser) await browser.close();
+      return [];
+    }
+
+    // Create a single details page to reuse
+    let detailPage = await browser.newPage();
+    await detailPage.setUserAgent(randomUA);
+    await detailPage.setViewport({ width: 1280, height: 800 });
+
+    for (let idx = 0; idx < filteredCandidates.length; idx++) {
+      if (leadsCollected.length >= maxLeadsNeeded) {
+        break;
+      }
+
+      const cand = filteredCandidates[idx];
+      const link = cand.link;
+
+      // Random delay between detail retrievals
+      const delay = Math.floor(Math.random() * 1500) + 1500; // 1.5s - 3.0s
+      await new Promise(r => setTimeout(r, delay));
+
+      let retryWithFreshBrowser = false;
+
+      try {
+        await detailPage.goto(link, { waitUntil: 'domcontentloaded', timeout: 30000 });
+
+        // Wait a tiny bit for render
+        await new Promise(r => setTimeout(r, 1200));
+
+        // Check if we are blocked/presented with CAPTCHA or consent page
+        const isBlocked = await detailPage.evaluate(() => {
+          const text = document.body.innerText || "";
+          return text.includes("unusual traffic") || 
+                 text.includes("not a robot") || 
+                 document.title.includes("robot") ||
+                 location.href.includes("captcha") ||
+                 location.href.includes("consent.google");
+        });
+
+        if (isBlocked) {
+          await logToAll(`[Puppeteer Warning] Google rate limit/block detected! Resetting browser session...`, 'warning');
+          retryWithFreshBrowser = true;
+        } else {
+          const details = await detailPage.evaluate((kwLabel) => {
+            const nameEl = document.querySelector('h1');
+            const name = nameEl ? nameEl.innerText.trim() : 'Local Business';
+
+            const phoneEl = document.querySelector('button[data-item-id^="phone:tel:"]');
+            const phone = phoneEl ? phoneEl.getAttribute('data-item-id').replace('phone:tel:', '').trim() : '';
+
+            const websiteEl = document.querySelector('a[data-item-id="authority"]');
+            const website = websiteEl ? websiteEl.getAttribute('href') : '';
+
+            const addressEl = document.querySelector('button[data-item-id="address"]');
+            let address = addressEl ? addressEl.innerText.trim() : '';
+            address = address.replace(/^[\s\uE000-\uF8FF]+/, '').replace(/^[^a-zA-Z0-9\s,]+/, '').trim();
+
+            const ratingEl = document.querySelector('div.F7nice span[aria-hidden="true"]');
+            const ratingVal = ratingEl ? parseFloat(ratingEl.innerText.replace(',', '.')) : 0;
+
+            const categoryEl = document.querySelector('button[jsaction*="pane.rating.category"]');
+            const category = categoryEl ? categoryEl.innerText.trim() : kwLabel;
+
+            return { name, phone, website, address, rating: ratingVal, category };
+          }, kw);
+
+          if (details.phone && !details.website) {
+            leadsCollected.push(details);
+            await logToAll(`Scraped (No Website): ${details.name} - ${details.phone}`, 'success');
+          } else if (details.phone && details.website) {
+            await logToAll(`Skipped (Has Website): ${details.name}`, 'info');
+          }
+        }
+      } catch (detailErr) {
+        console.error(`[Puppeteer] Error scraping detail link:`, detailErr.message);
+      }
+
+      if (retryWithFreshBrowser) {
+        // Close current browser
+        try {
+          await browser.close();
+        } catch (e) {}
+
+        // Launch fresh browser and retry this candidate
+        const newLaunchOpts = { ...launchOptions };
+        const newUA = USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+        
+        browser = await puppeteer.launch(newLaunchOpts);
+        detailPage = await browser.newPage();
+        await detailPage.setUserAgent(newUA);
+        await detailPage.setViewport({ width: 1280, height: 800 });
+
+        await logToAll(`[Puppeteer] Re-launched session. Retrying details lookup for ${cand.link}...`, 'info');
+        
+        try {
+          await detailPage.goto(cand.link, { waitUntil: 'domcontentloaded', timeout: 30000 });
+          await new Promise(r => setTimeout(r, 1500));
+
+          const details = await detailPage.evaluate((kwLabel) => {
+            const nameEl = document.querySelector('h1');
+            const name = nameEl ? nameEl.innerText.trim() : 'Local Business';
+
+            const phoneEl = document.querySelector('button[data-item-id^="phone:tel:"]');
+            const phone = phoneEl ? phoneEl.getAttribute('data-item-id').replace('phone:tel:', '').trim() : '';
+
+            const websiteEl = document.querySelector('a[data-item-id="authority"]');
+            const website = websiteEl ? websiteEl.getAttribute('href') : '';
+
+            const addressEl = document.querySelector('button[data-item-id="address"]');
+            let address = addressEl ? addressEl.innerText.trim() : '';
+            address = address.replace(/^[\s\uE000-\uF8FF]+/, '').replace(/^[^a-zA-Z0-9\s,]+/, '').trim();
+
+            const ratingEl = document.querySelector('div.F7nice span[aria-hidden="true"]');
+            const ratingVal = ratingEl ? parseFloat(ratingEl.innerText.replace(',', '.')) : 0;
+
+            const categoryEl = document.querySelector('button[jsaction*="pane.rating.category"]');
+            const category = categoryEl ? categoryEl.innerText.trim() : kwLabel;
+
+            return { name, phone, website, address, rating: ratingVal, category };
+          }, kw);
+
+          if (details.phone && !details.website) {
+            leadsCollected.push(details);
+            await logToAll(`Scraped (No Website, post-reset): ${details.name} - ${details.phone}`, 'success');
+          } else if (details.phone && details.website) {
+            await logToAll(`Skipped (Has Website, post-reset): ${details.name}`, 'info');
+          }
+        } catch (retryErr) {
+          console.error(`[Puppeteer] Failed retry after reset:`, retryErr.message);
+        }
+      }
+    }
+  } catch (err) {
+    await logToAll(`[Puppeteer] Session error: ${err.message}`, 'error');
+  } finally {
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (e) {}
+    }
+  }
+
+  return leadsCollected;
+}
+
+// Local Puppeteer Google Maps Scraper helper (Smart Multi-Keyword loop)
+async function getPuppeteerLeads(city, selectedKeyword) {
+  const geminiKey = await getSetting('gemini_api_key') || process.env.GEMINI_API_KEY;
+  const geminiModel = await getSetting('gemini_model') || process.env.GEMINI_MODEL || "gemini-2.5-flash";
+
   let baseKeywords = selectedKeyword ? [selectedKeyword] : await getSettingArray('keywords', ["clinic", "doctor", "hospital"]);
   
-  // Expand keyword search if single keyword is provided, to guarantee 50+ leads
-  let keywords = [...baseKeywords];
+  let keywordsToSearch = [...baseKeywords];
+  
   if (selectedKeyword) {
     const keyLower = selectedKeyword.toLowerCase().trim();
-    const syns = KEYWORD_SYNONYMS[keyLower];
-    if (syns) {
-      keywords = [selectedKeyword, ...syns];
+    let syns = KEYWORD_SYNONYMS[keyLower];
+    if (!syns || syns.length === 0) {
+      if (geminiKey) {
+        syns = await getSmartSynonymsFromGemini(selectedKeyword, geminiKey, geminiModel);
+      }
+    }
+    if (syns && syns.length > 0) {
+      keywordsToSearch = [selectedKeyword, ...syns];
       await logToAll(`Expanded search for "${selectedKeyword}" with synonyms: ${syns.join(', ')} to target 50+ leads.`, 'info');
     }
   }
 
   const allLeads = [];
+  const searchedKeywords = new Set();
+  let keywordIndex = 0;
 
-  await logToAll(`Launching local Puppeteer browser for location: ${city}...`, 'info');
+  while (keywordIndex < keywordsToSearch.length && allLeads.length < 60) {
+    const kw = keywordsToSearch[keywordIndex];
+    keywordIndex++;
 
-  let browser;
-  try {
-    const launchOptions = {
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--window-size=1280,800'
-      ]
-    };
+    const kwLower = kw.toLowerCase().trim();
+    if (searchedKeywords.has(kwLower)) {
+      continue;
+    }
+    searchedKeywords.add(kwLower);
 
-    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-      launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-      await logToAll(`Using custom Chromium path: ${launchOptions.executablePath}`, 'info');
+    await logToAll(`Starting scraping for category: "${kw}" (${keywordIndex}/${keywordsToSearch.length})...`, 'info');
+    const leadsForKw = await scrapeSingleKeywordWithPuppeteer(city, kw, allLeads.length);
+
+    for (const lead of leadsForKw) {
+      allLeads.push(lead);
     }
 
-    browser = await puppeteer.launch(launchOptions);
+    await logToAll(`Total unique website-less leads collected so far: ${allLeads.length}`, 'info');
 
-    const page = await browser.newPage();
-    // Set realistic user agent
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-    await page.setViewport({ width: 1280, height: 800 });
-
-    for (const kw of keywords) {
-      if (allLeads.length >= 60) {
-        break;
-      }
-      const searchQuery = `${kw} in ${city}`;
-      const url = `https://www.google.com/maps/search/${encodeURIComponent(searchQuery)}`;
-      await logToAll(`Puppeteer loading: ${url}...`, 'info');
-
-      try {
-        await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
-
-        // Scroll sidebar to load results (usually div[role="feed"])
-        await logToAll(`Scrolling results pane to load places...`, 'info');
-        
-        // Wait for list container or any search result anchor
-        let listContainerSelector = 'div[role="feed"]';
-        try {
-          await page.waitForSelector(listContainerSelector, { timeout: 15000 });
-        } catch (e) {
-          // If we are redirected to a single place page, or feed selector is different
-          listContainerSelector = null;
-        }
-
-        if (listContainerSelector) {
-          // Scroll the feed dynamically to load more items (target 180+ listings or end of list)
-          await logToAll(`Scrolling results pane to load enough places for 50+ leads...`, 'info');
-          let previousCount = 0;
-          let noChangeCount = 0;
-
-          for (let s = 0; s < 35; s++) {
-            await page.evaluate((sel) => {
-              const el = document.querySelector(sel);
-              if (el) el.scrollBy(0, el.scrollHeight);
-            }, listContainerSelector);
-
-            await new Promise(r => setTimeout(r, 1200));
-
-            const currentCount = await page.evaluate(() => {
-              return document.querySelectorAll('a[href*="/maps/place/"]').length;
-            });
-
-            if (currentCount >= 180) {
-              await logToAll(`Loaded ${currentCount} listings. Stopping scroll.`, 'info');
-              break;
+    // Dynamic niche expansion: if we searched all categories in our list but still have less than 50 leads,
+    // and we haven't hit our limit of 8 keywords total, ask Gemini for more related keywords.
+    if (allLeads.length < 50 && keywordIndex >= keywordsToSearch.length && keywordsToSearch.length < 8) {
+      if (geminiKey) {
+        await logToAll(`Lead count (${allLeads.length}) is below 50. Querying Gemini to generate more related business categories to keep scraping...`, 'info');
+        const extraSyns = await getMoreSmartSynonymsFromGemini(
+          selectedKeyword || keywordsToSearch[0], 
+          Array.from(searchedKeywords), 
+          geminiKey, 
+          geminiModel
+        );
+        if (extraSyns && extraSyns.length > 0) {
+          for (const s of extraSyns) {
+            const cleanS = s.toLowerCase().trim();
+            if (!keywordsToSearch.map(k => k.toLowerCase().trim()).includes(cleanS) && !searchedKeywords.has(cleanS)) {
+              keywordsToSearch.push(s);
             }
-
-            if (currentCount === previousCount && currentCount > 0) {
-              noChangeCount++;
-              if (noChangeCount >= 4) break; // Reached end of listings list
-            } else if (currentCount > 0) {
-              noChangeCount = 0;
-            }
-            previousCount = currentCount;
           }
+          await logToAll(`Appended new categories to search list: ${extraSyns.join(', ')}`, 'info');
         }
-
-        // Get place anchor links and check if they have websites from the feed DOM (to avoid opening them and hitting rate limits)
-        const placeCandidates = await page.evaluate(() => {
-          const cards = Array.from(document.querySelectorAll('div[role="feed"] > div, div.Nv2y1d'));
-          const list = [];
-          
-          for (const card of cards) {
-            const placeAnchor = card.querySelector('a[href*="/maps/place/"]');
-            if (!placeAnchor) continue;
-            
-            // Look for any website button or link inside this specific search result card
-            const hasWeb = !!card.querySelector('a[data-item-id="authority"], a[href^="http"]:not([href*="google.com"]):not([href*="google.co.in"]):not([href*="gstatic.com"])');
-            
-            list.push({
-              link: placeAnchor.href,
-              hasWebsite: hasWeb
-            });
-          }
-          
-          // Fallback if cards selector wasn't matched
-          if (list.length === 0) {
-            const anchors = Array.from(document.querySelectorAll('a[href*="/maps/place/"]'));
-            return anchors.map(a => ({ link: a.href, hasWebsite: false }));
-          }
-          
-          return list;
-        });
-
-        // Deduplicate candidates
-        const seenLinks = new Set();
-        const uniqueCandidates = [];
-        for (const cand of placeCandidates) {
-          if (!seenLinks.has(cand.link)) {
-            seenLinks.add(cand.link);
-            uniqueCandidates.push(cand);
-          }
-        }
-
-        // Filter out candidates that have websites (we check up to 150 candidates)
-        const filteredCandidates = uniqueCandidates.filter(c => !c.hasWebsite).slice(0, 150);
-        
-        await logToAll(`Found ${uniqueCandidates.length} unique place links for "${kw}". Skipped ${uniqueCandidates.length - filteredCandidates.length} places that have websites. Extracting details for the remaining ${filteredCandidates.length} candidates...`, 'info');
-
-        for (let idx = 0; idx < filteredCandidates.length; idx++) {
-          // Stop if we have successfully scraped 60 leads overall (ensures at least 50 after deduping)
-          if (allLeads.length >= 60) {
-            await logToAll(`Target of 50+ leads achieved. Stopping details extraction for "${kw}".`, 'success');
-            break;
-          }
-
-          const cand = filteredCandidates[idx];
-          const link = cand.link;
-          try {
-            const detailPage = await browser.newPage();
-            await detailPage.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-            await detailPage.goto(link, { waitUntil: 'domcontentloaded', timeout: 30000 });
-
-            // Wait a tiny bit for render
-            await new Promise(r => setTimeout(r, 1200));
-
-            const details = await detailPage.evaluate((kwLabel) => {
-              // 1. Business Name
-              const nameEl = document.querySelector('h1');
-              const name = nameEl ? nameEl.innerText.trim() : 'Local Business';
-
-              // 2. Phone
-              const phoneEl = document.querySelector('button[data-item-id^="phone:tel:"]');
-              const phone = phoneEl ? phoneEl.getAttribute('data-item-id').replace('phone:tel:', '').trim() : '';
-
-              // 3. Website
-              const websiteEl = document.querySelector('a[data-item-id="authority"]');
-              const website = websiteEl ? websiteEl.getAttribute('href') : '';
-
-              // 4. Address
-              const addressEl = document.querySelector('button[data-item-id="address"]');
-              let address = addressEl ? addressEl.innerText.trim() : '';
-              address = address.replace(/^[\s\uE000-\uF8FF]+/, '').replace(/^[^a-zA-Z0-9\s,]+/, '').trim();
-
-              // 5. Rating
-              const ratingEl = document.querySelector('div.F7nice span[aria-hidden="true"]');
-              const ratingVal = ratingEl ? parseFloat(ratingEl.innerText.replace(',', '.')) : 0;
-
-              // 6. Category
-              const categoryEl = document.querySelector('button[jsaction*="pane.rating.category"]');
-              const category = categoryEl ? categoryEl.innerText.trim() : kwLabel;
-
-              return { name, phone, website, address, rating: ratingVal, category };
-            }, kw);
-
-            await detailPage.close();
-
-            if (details.phone && !details.website) {
-              allLeads.push(details);
-              await logToAll(`Scraped (No Website): ${details.name} - ${details.phone}`, 'success');
-            } else if (details.phone && details.website) {
-              await logToAll(`Skipped (Has Website): ${details.name}`, 'info');
-            }
-          } catch (detailErr) {
-            console.error(`Error scraping link ${idx}:`, detailErr.message);
-          }
-        }
-      } catch (kwErr) {
-        await logToAll(`Puppeteer error querying "${kw}": ${kwErr.message}`, 'error');
       }
     }
-  } catch (err) {
-    await logToAll(`Puppeteer execution failed: ${err.message}`, 'error');
-  } finally {
-    if (browser) await browser.close();
   }
 
-  // Deduplicate by phone
+  // Deduplicate final list by phone just to be absolutely sure
   const uniqueLeads = [];
   const seenPhones = new Set();
   for (const lead of allLeads) {
