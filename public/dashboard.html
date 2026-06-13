@@ -1258,6 +1258,26 @@
             <i data-lucide="play"></i> Start Lead Extraction Run
           </button>
         </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h3><i data-lucide="key"></i> Free Scraper API Key</h3>
+          </div>
+          <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5;">
+            To ensure 100% free lead scraping on the cloud without getting blocked by CAPTCHAs, you can use Serper.dev.
+            <br>
+            Get a free key (2,500 queries, no credit card required) at <a href="https://serper.dev" target="_blank" style="color: var(--gold-light); text-decoration: underline;">serper.dev</a>. If left blank, the built-in local Puppeteer scraper is used.
+          </p>
+          
+          <div class="form-group">
+            <label for="settings-serper-key">Serper.dev API Key</label>
+            <input type="password" id="settings-serper-key" placeholder="Enter your Serper.dev API key">
+          </div>
+          
+          <button class="btn btn-secondary" onclick="saveSerperSettings()">
+            <i data-lucide="save"></i> Save Scraper Key
+          </button>
+        </div>
         
         <div class="panel">
           <div class="panel-header">
@@ -1925,6 +1945,7 @@
           // Populate settings tab fields
           // Resend / SMTP
           document.getElementById('settings-resend-key').value = settings.resend_api_key || "";
+          document.getElementById('settings-serper-key').value = settings.serper_api_key || "";
           document.getElementById('settings-smtp-host').value = settings.smtp_host || "";
           document.getElementById('settings-smtp-port').value = settings.smtp_port || "587";
           document.getElementById('settings-smtp-user').value = settings.smtp_user || "";
@@ -2034,6 +2055,11 @@
       const gemini_model = document.getElementById('settings-gemini-model').value;
 
       saveSettingsToServer({ gemini_api_key, gemini_model });
+    }
+
+    function saveSerperSettings() {
+      const serper_api_key = document.getElementById('settings-serper-key').value;
+      saveSettingsToServer({ serper_api_key });
     }
 
     function saveTemplatesSetting() {

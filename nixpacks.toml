@@ -1,0 +1,6 @@
+# Nixpacks configuration to support Puppeteer on Railway
+[phases.setup]
+nixPkgs = ["nodejs", "npm", "chromium"]
+
+[phases.build]
+cmds = ["npm ci"]

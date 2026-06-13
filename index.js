@@ -61,6 +61,7 @@ const DEFAULT_SETTINGS = {
   resend_api_key: process.env.RESEND_API_KEY || "",
   gemini_api_key: process.env.GEMINI_API_KEY || "",
   gemini_model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+  serper_api_key: process.env.SERPER_API_KEY || "",
   smtp_host: "",
   smtp_port: "587",
   smtp_user: "",
@@ -382,7 +383,9 @@ async function crawlWebsiteForEmail(url) {
     const response = await fetch(targetUrl, {
       signal: controller.signal,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9'
       }
     });
     clearTimeout(timeoutId);
@@ -390,51 +393,89 @@ async function crawlWebsiteForEmail(url) {
     if (!response.ok) return "";
     const html = await response.text();
     
-    // Find emails in homepage HTML
-    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,20}/g;
-    const matches = html.match(emailRegex) || [];
-    const cleanEmails = matches.filter(e => {
-      const lower = e.toLowerCase();
-      return !/\.(png|jpg|jpeg|gif|svg|webp|css|js)$/.test(lower) && !lower.startsWith('email@');
-    });
+    // Helper to extract email from text
+    const extractEmail = (text) => {
+      // 1. Try mailto: links first as they are 100% accurate
+      const mailtoMatch = text.match(/href=["']mailto:([^"'\s?]+)/i);
+      if (mailtoMatch && mailtoMatch[1]) {
+        const mailtoEmail = mailtoMatch[1].trim();
+        if (mailtoEmail && mailtoEmail.includes('@') && mailtoEmail.includes('.')) {
+          return mailtoEmail;
+        }
+      }
 
-    if (cleanEmails.length > 0) {
-      return [...new Set(cleanEmails)][0];
-    }
+      // 2. Try regex match in page text
+      const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,20}/g;
+      const matches = text.match(emailRegex) || [];
+      const cleanEmails = matches
+        .map(e => e.trim())
+        .filter(e => {
+          const lower = e.toLowerCase();
+          return !/\.(png|jpg|jpeg|gif|svg|webp|css|js|mp4|mov|pdf)$/.test(lower) && 
+                 !lower.startsWith('email@') &&
+                 !lower.startsWith('yourname@') &&
+                 !lower.startsWith('info@yourdomain') &&
+                 e.includes('.');
+        });
+      
+      if (cleanEmails.length > 0) {
+        return [...new Set(cleanEmails)][0];
+      }
+      return "";
+    };
+
+    const emailOnHomepage = extractEmail(html);
+    if (emailOnHomepage) return emailOnHomepage;
 
     // Try contact/about pages
-    const contactPageRegex = /href="([^"]*contact[^"]*)"|href="([^"]*about[^"]*)"/i;
-    const pageMatch = html.match(contactPageRegex);
-    const link = pageMatch ? (pageMatch[1] || pageMatch[2]) : null;
+    // Extract all link URLs
+    const hrefs = [];
+    const hrefRegex = /href=["']([^"']+)["']/gi;
+    let hrefMatch;
+    while ((hrefMatch = hrefRegex.exec(html)) !== null) {
+      hrefs.push(hrefMatch[1]);
+    }
 
-    if (link) {
+    const contactKeywords = ['contact', 'about', 'info', 'reach', 'connect', 'support', 'help'];
+    const contactLinks = hrefs.filter(link => {
+      const lowerLink = link.toLowerCase();
+      return contactKeywords.some(kw => lowerLink.includes(kw));
+    });
+
+    const uniqueLinks = [...new Set(contactLinks)];
+
+    for (const link of uniqueLinks.slice(0, 3)) { // Check top 3 links to avoid infinite requests
       let contactUrl = link;
       if (!/^https?:\/\//i.test(contactUrl)) {
-        const origin = new URL(targetUrl).origin;
-        contactUrl = origin + (link.startsWith('/') ? '' : '/') + link;
+        try {
+          const origin = new URL(targetUrl).origin;
+          contactUrl = origin + (link.startsWith('/') ? '' : '/') + link;
+        } catch (e) {
+          continue;
+        }
       }
 
       const contactController = new AbortController();
       const contactTimeoutId = setTimeout(() => contactController.abort(), 6000);
 
-      const contactResponse = await fetch(contactUrl, {
-        signal: contactController.signal,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      clearTimeout(contactTimeoutId);
-
-      if (contactResponse.ok) {
-        const contactHtml = await contactResponse.text();
-        const contactMatches = contactHtml.match(emailRegex) || [];
-        const cleanContactEmails = contactMatches.filter(e => {
-          const lower = e.toLowerCase();
-          return !/\.(png|jpg|jpeg|gif|svg|webp|css|js)$/.test(lower) && !lower.startsWith('email@');
+      try {
+        const contactResponse = await fetch(contactUrl, {
+          signal: contactController.signal,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+          }
         });
-        if (cleanContactEmails.length > 0) {
-          return [...new Set(cleanContactEmails)][0];
+        clearTimeout(contactTimeoutId);
+
+        if (contactResponse.ok) {
+          const contactHtml = await contactResponse.text();
+          const emailOnContactPage = extractEmail(contactHtml);
+          if (emailOnContactPage) {
+            return emailOnContactPage;
+          }
         }
+      } catch (err) {
+        // Silent fail for single link failure
       }
     }
   } catch (err) {
@@ -482,11 +523,14 @@ async function getGooglePlacesLeads(city, selectedKeyword) {
           const phone = result.international_phone_number || result.formatted_phone_number;
           if (!phone) continue;
 
+          const website = result.website || "";
+          if (website) continue; // Skip if website exists
+
           const category = result.types && result.types.length > 0 ? result.types[0].replace(/_/g, ' ') : kw;
           allLeads.push({
             name: result.name || place.name,
             phone: phone,
-            website: result.website || "",
+            website: "",
             category: category,
             rating: result.rating || place.rating || 0,
             address: result.formatted_address || place.formatted_address || ""
@@ -498,6 +542,221 @@ async function getGooglePlacesLeads(city, selectedKeyword) {
     } catch (err) {
       console.error(`Google Places Search error for "${kw}":`, err.message);
     }
+  }
+
+  // Deduplicate by phone
+  const uniqueLeads = [];
+  const seenPhones = new Set();
+  for (const lead of allLeads) {
+    const cleanPhone = lead.phone.replace(/\D/g, '');
+    if (!seenPhones.has(cleanPhone)) {
+      seenPhones.add(cleanPhone);
+      uniqueLeads.push(lead);
+    }
+  }
+
+  return uniqueLeads;
+}
+
+// Serper.dev Places API lead fetcher helper
+async function getSerperPlacesLeads(city, selectedKeyword) {
+  const serperKey = await getSetting('serper_api_key') || process.env.SERPER_API_KEY;
+  if (!serperKey) throw new Error("Serper API key is missing.");
+
+  const keywords = selectedKeyword ? [selectedKeyword] : await getSettingArray('keywords', ["clinic", "doctor", "hospital"]);
+  const allLeads = [];
+
+  for (const kw of keywords) {
+    const query = `${kw} in ${city}`;
+    await logToAll(`Querying Serper.dev Places API for: "${query}"...`, 'info');
+
+    try {
+      const response = await fetch("https://google.serper.dev/places", {
+        method: "POST",
+        headers: {
+          "X-API-KEY": serperKey,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          q: query,
+          gl: "in",
+          hl: "en"
+        })
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        await logToAll(`Serper.dev query failed for "${kw}": ${errText}`, 'error');
+        continue;
+      }
+
+      const data = await response.json();
+      const places = data.places || [];
+      await logToAll(`Serper.dev found ${places.length} places for "${kw}".`, 'info');
+
+      for (const place of places) {
+        const phone = place.phone;
+        if (!phone) continue; // Must have phone for WhatsApp outreach
+
+        const website = place.website || "";
+        if (website) continue; // Skip if website exists
+
+        allLeads.push({
+          name: place.name || "Local Business",
+          phone: phone,
+          website: "",
+          category: place.category || kw,
+          rating: place.rating || 0,
+          address: place.address || ""
+        });
+      }
+    } catch (err) {
+      console.error(`Serper.dev error for "${kw}":`, err.message);
+    }
+  }
+
+  // Deduplicate by phone
+  const uniqueLeads = [];
+  const seenPhones = new Set();
+  for (const lead of allLeads) {
+    const cleanPhone = lead.phone.replace(/\D/g, '');
+    if (!seenPhones.has(cleanPhone)) {
+      seenPhones.add(cleanPhone);
+      uniqueLeads.push(lead);
+    }
+  }
+
+  return uniqueLeads;
+}
+
+// Local Puppeteer Google Maps Scraper helper
+async function getPuppeteerLeads(city, selectedKeyword) {
+  const puppeteer = require('puppeteer');
+  const keywords = selectedKeyword ? [selectedKeyword] : await getSettingArray('keywords', ["clinic", "doctor", "hospital"]);
+  const allLeads = [];
+
+  await logToAll(`Launching local Puppeteer browser for location: ${city}...`, 'info');
+
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--window-size=1280,800'
+      ]
+    });
+
+    const page = await browser.newPage();
+    // Set realistic user agent
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+    await page.setViewport({ width: 1280, height: 800 });
+
+    for (const kw of keywords) {
+      const searchQuery = `${kw} in ${city}`;
+      const url = `https://www.google.com/maps/search/${encodeURIComponent(searchQuery)}`;
+      await logToAll(`Puppeteer loading: ${url}...`, 'info');
+
+      try {
+        await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
+
+        // Scroll sidebar to load results (usually div[role="feed"])
+        await logToAll(`Scrolling results pane to load places...`, 'info');
+        
+        // Wait for list container or any search result anchor
+        let listContainerSelector = 'div[role="feed"]';
+        try {
+          await page.waitForSelector(listContainerSelector, { timeout: 15000 });
+        } catch (e) {
+          // If we are redirected to a single place page, or feed selector is different
+          listContainerSelector = null;
+        }
+
+        if (listContainerSelector) {
+          // Scroll the feed to load more items (we want 30+ leads, so let's scroll 6-8 times)
+          for (let s = 0; s < 8; s++) {
+            await page.evaluate((sel) => {
+              const el = document.querySelector(sel);
+              if (el) el.scrollBy(0, el.scrollHeight);
+            }, listContainerSelector);
+            await new Promise(r => setTimeout(r, 1500));
+          }
+        }
+
+        // Get place anchor links
+        const placeLinks = await page.evaluate(() => {
+          const anchors = Array.from(document.querySelectorAll('a[href*="/maps/place/"]'));
+          return anchors.map(a => a.href);
+        });
+
+        const uniqueLinks = [...new Set(placeLinks)];
+        await logToAll(`Found ${uniqueLinks.length} unique place links for "${kw}". Extracting details...`, 'info');
+
+        // We want 30+ leads, so limit loop to first 45 candidates to scrape
+        const limitLinks = uniqueLinks.slice(0, 45);
+
+        for (let idx = 0; idx < limitLinks.length; idx++) {
+          const link = limitLinks[idx];
+          try {
+            const detailPage = await browser.newPage();
+            await detailPage.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+            await detailPage.goto(link, { waitUntil: 'domcontentloaded', timeout: 30000 });
+
+            // Wait a tiny bit for render
+            await new Promise(r => setTimeout(r, 1200));
+
+            const details = await detailPage.evaluate((kwLabel) => {
+              // 1. Business Name
+              const nameEl = document.querySelector('h1');
+              const name = nameEl ? nameEl.innerText.trim() : 'Local Business';
+
+              // 2. Phone
+              const phoneEl = document.querySelector('button[data-item-id^="phone:tel:"]');
+              const phone = phoneEl ? phoneEl.getAttribute('data-item-id').replace('phone:tel:', '').trim() : '';
+
+              // 3. Website
+              const websiteEl = document.querySelector('a[data-item-id="authority"]');
+              const website = websiteEl ? websiteEl.getAttribute('href') : '';
+
+              // 4. Address
+              const addressEl = document.querySelector('button[data-item-id="address"]');
+              let address = addressEl ? addressEl.innerText.trim() : '';
+              address = address.replace(/^[\s\uE000-\uF8FF]+/, '').replace(/^[^a-zA-Z0-9\s,]+/, '').trim();
+
+              // 5. Rating
+              const ratingEl = document.querySelector('div.F7nice span[aria-hidden="true"]');
+              const ratingVal = ratingEl ? parseFloat(ratingEl.innerText.replace(',', '.')) : 0;
+
+              // 6. Category
+              const categoryEl = document.querySelector('button[jsaction*="pane.rating.category"]');
+              const category = categoryEl ? categoryEl.innerText.trim() : kwLabel;
+
+              return { name, phone, website, address, rating: ratingVal, category };
+            }, kw);
+
+            await detailPage.close();
+
+            if (details.phone && !details.website) {
+              allLeads.push(details);
+              console.log(`Scraped (No Website): ${details.name} - ${details.phone}`);
+            } else if (details.phone && details.website) {
+              console.log(`Skipped (Has Website): ${details.name} - ${details.website}`);
+            }
+          } catch (detailErr) {
+            console.error(`Error scraping link ${idx}:`, detailErr.message);
+          }
+        }
+      } catch (kwErr) {
+        await logToAll(`Puppeteer error querying "${kw}": ${kwErr.message}`, 'error');
+      }
+    }
+  } catch (err) {
+    await logToAll(`Puppeteer execution failed: ${err.message}`, 'error');
+  } finally {
+    if (browser) await browser.close();
   }
 
   // Deduplicate by phone
@@ -527,56 +786,33 @@ async function runLeadScraper(city, selectedKeyword = null) {
 
   try {
     const googleApiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY;
+    const serperApiKey = await getSetting('serper_api_key') || process.env.SERPER_API_KEY;
+    const apifyToken = process.env.APIFY_TOKEN;
+    
+    let rawLeads = [];
     let items = [];
 
     if (googleApiKey) {
       currentScraperRun.status = "Querying Google Places API";
       currentScraperRun.progress = 20;
       await logToAll("Using Official Google Places API...", "info");
-      
-      const rawLeads = await getGooglePlacesLeads(city, selectedKeyword);
-      currentScraperRun.progress = 60;
-      currentScraperRun.status = "Crawling websites for emails";
-
-      await logToAll(`Fetched ${rawLeads.length} leads with phone numbers. Starting local email crawl...`, 'info');
-
-      for (let i = 0; i < rawLeads.length; i++) {
-        const lead = rawLeads[i];
-        currentScraperRun.progress = 60 + Math.floor((i / rawLeads.length) * 30);
-        let email = "";
-        if (lead.website) {
-          await logToAll(`Crawling website: ${lead.website} for emails...`, 'info');
-          email = await crawlWebsiteForEmail(lead.website);
-          if (email) {
-            await logToAll(`Found email: ${email} for ${lead.name}`, 'success');
-          }
-        }
-        items.push({
-          title: lead.name,
-          phone: lead.phone,
-          website: lead.website,
-          email: email,
-          categoryName: lead.category,
-          totalScore: lead.rating,
-          address: lead.address
-        });
-      }
-    } else {
-      // Fallback to Apify Google Places Scraper
-      const apifyToken = process.env.APIFY_TOKEN;
-      if (!apifyToken) throw new Error("Neither GOOGLE_PLACES_API_KEY nor APIFY_TOKEN is configured.");
-
+      rawLeads = await getGooglePlacesLeads(city, selectedKeyword);
+    } else if (serperApiKey) {
+      currentScraperRun.status = "Querying Serper.dev API";
+      currentScraperRun.progress = 20;
+      await logToAll("Using Serper.dev Places API (Free, No Credit Card)...", "info");
+      rawLeads = await getSerperPlacesLeads(city, selectedKeyword);
+    } else if (process.env.USE_APIFY === "true" && apifyToken) {
+      currentScraperRun.status = "Sending request to Apify";
+      currentScraperRun.progress = 15;
       await logToAll("Using Apify Google Places Scraper (Fallback)...", "info");
-
+      
       const keywords = selectedKeyword ? [selectedKeyword] : await getSettingArray('keywords', ["clinic", "doctor", "hospital"]);
       currentScraperRun.keyword = selectedKeyword || "All Keywords";
       await logToAll(`Keywords to crawl: ${keywords.join(', ')}`, 'info');
 
       const searchQueries = keywords.map(kw => `${kw} in ${city}`);
       
-      currentScraperRun.status = "Sending request to Apify";
-      currentScraperRun.progress = 15;
-
       const runResponse = await fetch(`https://api.apify.com/v2/acts/compass~crawler-google-places/runs?token=${apifyToken}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -658,6 +894,9 @@ async function runLeadScraper(city, selectedKeyword = null) {
         const phone = item.phoneUnformatted || item.phone;
         if (!phone) continue;
 
+        const website = item.website || "";
+        if (website) continue; // Skip if website exists
+
         let email = "";
         if (item.email) {
           email = item.email;
@@ -672,16 +911,51 @@ async function runLeadScraper(city, selectedKeyword = null) {
           email = typeof first === 'object' ? (first.email || first.value || "") : first;
         }
 
-        items.push({
-          title: item.title || item.name,
+        rawLeads.push({
+          name: item.title || item.name,
           phone: phone,
-          website: item.website || "",
-          email: email,
-          categoryName: item.categoryName || item.subTitle || "Local Business",
-          totalScore: item.totalScore || item.stars || 0,
-          address: item.address || ""
+          website: "",
+          category: item.categoryName || item.subTitle || "Local Business",
+          rating: item.totalScore || item.stars || 0,
+          address: item.address || "",
+          email: email
         });
       }
+    } else {
+      currentScraperRun.status = "Querying via Local Puppeteer";
+      currentScraperRun.progress = 20;
+      await logToAll("Using Built-in Local Puppeteer Scraper (Free Fallback)...", "info");
+      rawLeads = await getPuppeteerLeads(city, selectedKeyword);
+    }
+
+    // Now, run the local email crawler for any leads that don't have emails yet
+    currentScraperRun.progress = 60;
+    currentScraperRun.status = "Crawling websites for emails";
+
+    await logToAll(`Scraped ${rawLeads.length} leads. Starting local email crawler on websites...`, 'info');
+
+    for (let i = 0; i < rawLeads.length; i++) {
+      const lead = rawLeads[i];
+      currentScraperRun.progress = 60 + Math.floor((i / rawLeads.length) * 30);
+      
+      let email = lead.email || "";
+      if (!email && lead.website) {
+        await logToAll(`Crawling website: ${lead.website} for emails...`, 'info');
+        email = await crawlWebsiteForEmail(lead.website);
+        if (email) {
+          await logToAll(`Found email: ${email} for ${lead.name}`, 'success');
+        }
+      }
+      
+      items.push({
+        title: lead.name,
+        phone: lead.phone,
+        website: lead.website,
+        email: email,
+        categoryName: lead.category,
+        totalScore: lead.rating,
+        address: lead.address
+      });
     }
 
     // Save leads to Supabase
