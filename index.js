@@ -399,8 +399,16 @@ async function runLeadScraper(city, selectedKeyword = null) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         searchStringsArray: searchQueries,
-        maxCrawledPlacesPerSearch: 60,
-        language: "en"
+        maxCrawledPlacesPerSearch: 150,
+        language: "en",
+        maximumLeadsEnrichmentRecords: 150,
+        scrapeSocialMediaProfiles: {
+          facebooks: true,
+          instagrams: true,
+          youtubes: false,
+          tiktoks: false,
+          twitters: false
+        }
       })
     });
 
@@ -484,7 +492,22 @@ async function runLeadScraper(city, selectedKeyword = null) {
       const businessName = item.title || item.name;
       const category = item.categoryName || item.subTitle || "Local Business";
       const website = item.website || "";
-      const email = item.email || "";
+      
+      // Robust email extraction from Apify output
+      let email = "";
+      if (item.email) {
+        email = item.email;
+      } else if (Array.isArray(item.emails) && item.emails.length > 0) {
+        email = item.emails[0];
+      } else if (typeof item.emails === 'string' && item.emails.trim()) {
+        email = item.emails.split(',')[0].trim();
+      } else if (item.contactEmail) {
+        email = item.contactEmail;
+      } else if (Array.isArray(item.scraped_emails) && item.scraped_emails.length > 0) {
+        const first = item.scraped_emails[0];
+        email = typeof first === 'object' ? (first.email || first.value || "") : first;
+      }
+
       const rating = item.totalScore || item.stars || 0;
       const address = item.address || "";
       const hasWebsite = !!website;
