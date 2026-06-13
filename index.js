@@ -650,16 +650,9 @@ async function getPuppeteerLeads(city, selectedKeyword) {
       ]
     };
 
-    if (process.platform === 'linux') {
-      try {
-        const { execSync } = require('child_process');
-        const path = execSync('which chromium').toString().trim();
-        launchOptions.executablePath = path;
-        await logToAll(`Resolved system chromium path: ${path}`, 'info');
-      } catch (e) {
-        launchOptions.executablePath = 'chromium';
-        await logToAll(`Could not resolve chromium path with 'which'. Using default 'chromium'.`, 'info');
-      }
+    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+      launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+      await logToAll(`Using custom Chromium path: ${launchOptions.executablePath}`, 'info');
     }
 
     browser = await puppeteer.launch(launchOptions);
