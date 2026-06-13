@@ -151,6 +151,26 @@ async function getSetting(key) {
   return DEFAULT_SETTINGS[key] || "";
 }
 
+// Retrieve setting as a safe Array
+async function getSettingArray(key, defaultArray = []) {
+  const raw = await getSetting(key);
+  if (!raw) return defaultArray;
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+    return [parsed.toString()];
+  } catch (e) {
+    if (raw.includes('\n')) {
+      return raw.split('\n').map(l => l.trim()).filter(Boolean);
+    } else if (raw.includes(',')) {
+      return raw.split(',').map(l => l.trim()).filter(Boolean);
+    } else if (raw.trim()) {
+      return [raw.trim()];
+    }
+    return defaultArray;
+  }
+}
+
 // Save setting helper
 async function saveSetting(key, value) {
   if (supabase) {
@@ -351,8 +371,7 @@ async function runLeadScraper(city, selectedKeyword = null) {
     if (!apifyToken) throw new Error("APIFY_TOKEN environment variable is missing.");
 
     // Retrieve keywords list
-    const keywordsRaw = await getSetting('keywords');
-    const keywords = selectedKeyword ? [selectedKeyword] : JSON.parse(keywordsRaw);
+    const keywords = selectedKeyword ? [selectedKeyword] : await getSettingArray('keywords', ["clinic", "doctor", "hospital"]);
     
     currentScraperRun.keyword = selectedKeyword || "All Keywords";
     await logToAll(`Keywords to crawl: ${keywords.join(', ')}`, 'info');
@@ -594,8 +613,7 @@ async function triggerDailyOutreachFlow() {
   await logToAll("⏰ Triggering daily scheduled lead outreach automation...", "info");
   
   // Rotate city
-  const locationsRaw = await getSetting('locations');
-  const locations = JSON.parse(locationsRaw);
+  const locations = await getSettingArray('locations', ["Bhagalpur, Bihar"]);
   let activeIndex = parseInt(await getSetting('active_location_index')) || 0;
 
   // Select city
@@ -1250,8 +1268,7 @@ app.post('/api/whatsapp/webhook', async (req, res) => {
       await sendWhatsAppMessage(targetReplyNum, response);
 
     } else if (lowerMsg.startsWith('/cities')) {
-      const locationsRaw = await getSetting('locations');
-      const locations = JSON.parse(locationsRaw);
+      const locations = await getSettingArray('locations', ["Bhagalpur, Bihar"]);
       const activeIdx = parseInt(await getSetting('active_location_index')) || 0;
 
       let response = `📍 *Target Cities Rotation list:*\n`;
@@ -1432,8 +1449,7 @@ You must reply with a JSON object in this format (no markdown formatting, no bac
               }
 
             } else if (parsed.action === 'cities') {
-              const locationsRaw = await getSetting('locations');
-              const locations = JSON.parse(locationsRaw);
+              const locations = await getSettingArray('locations', ["Bhagalpur, Bihar"]);
               const activeIdx = parseInt(await getSetting('active_location_index')) || 0;
 
               let response = `📍 *Target Cities Rotation list:*\n`;
