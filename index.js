@@ -68,7 +68,7 @@ const DEFAULT_SETTINGS = {
   email_subject: "Boost your sales online - 90's Kids Digital",
   email_body: "Hi {{businessName}},\n\nWe noticed your business in {{location}} is doing great, but you don't have a website yet! In today's digital era, having a website is super important.\n\nAapka business online presence scale up karne me hum help kar sakte hain. Let's build a stunning website and run local marketing ads for you. You can check out our presence and work at https://90skids.digital\n\nWarm regards,\nNirbhay Kumar\n90's Kids Digital\nWebsite: https://90skids.digital",
   wa_template: "Hey {{businessName}}, this is Jordan from 90's Kids Digital. Humne dekha aapka {{category}} business solid chal raha hai in {{location}}, but online search visibility improve ki ja sakti hai. Aapka website link nahi mil raha. Let's scale it up? Visit https://90skids.digital to see our work. Reply if you're interested!",
-  keywords: JSON.stringify(["clinic", "real estate agency", "hotel", "school", "coaching center", "hospital", "interior designer", "insurance agency", "travel agency", "CA firm", "law firm", "event planner", "gym", "salon", "restaurant"]),
+  keywords: JSON.stringify(["clinic", "doctor", "hospital", "real estate agency", "school", "hotel", "restaurant", "coaching center", "interior designer", "gym", "salon", "dentist", "cafe", "boutique", "event planner"]),
   locations: JSON.stringify(["Bhagalpur, Bihar", "Patna, Bihar", "Ranchi, Jharkhand", "Kolkata, West Bengal", "Delhi NCR", "Mumbai, Maharashtra", "Bengaluru, Karnataka", "Pune, Maharashtra"]),
   active_location_index: "0",
   cron_time: "09:00",
