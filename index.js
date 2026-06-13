@@ -748,26 +748,57 @@ async function getPuppeteerLeads(city, selectedKeyword) {
           }
         }
 
-        // Get place anchor links
-        const placeLinks = await page.evaluate(() => {
-          const anchors = Array.from(document.querySelectorAll('a[href*="/maps/place/"]'));
-          return anchors.map(a => a.href);
+        // Get place anchor links and check if they have websites from the feed DOM (to avoid opening them and hitting rate limits)
+        const placeCandidates = await page.evaluate(() => {
+          const cards = Array.from(document.querySelectorAll('div[role="feed"] > div, div.Nv2y1d'));
+          const list = [];
+          
+          for (const card of cards) {
+            const placeAnchor = card.querySelector('a[href*="/maps/place/"]');
+            if (!placeAnchor) continue;
+            
+            // Look for any website button or link inside this specific search result card
+            const hasWeb = !!card.querySelector('a[data-item-id="authority"], a[href^="http"]:not([href*="google.com"]):not([href*="google.co.in"]):not([href*="gstatic.com"])');
+            
+            list.push({
+              link: placeAnchor.href,
+              hasWebsite: hasWeb
+            });
+          }
+          
+          // Fallback if cards selector wasn't matched
+          if (list.length === 0) {
+            const anchors = Array.from(document.querySelectorAll('a[href*="/maps/place/"]'));
+            return anchors.map(a => ({ link: a.href, hasWebsite: false }));
+          }
+          
+          return list;
         });
 
-        const uniqueLinks = [...new Set(placeLinks)];
-        await logToAll(`Found ${uniqueLinks.length} unique place links for "${kw}". Extracting details...`, 'info');
+        // Deduplicate candidates
+        const seenLinks = new Set();
+        const uniqueCandidates = [];
+        for (const cand of placeCandidates) {
+          if (!seenLinks.has(cand.link)) {
+            seenLinks.add(cand.link);
+            uniqueCandidates.push(cand);
+          }
+        }
 
-        // We want at least 50 leads, check up to 150 candidates to find enough matches without websites
-        const limitLinks = uniqueLinks.slice(0, 150);
+        // Filter out candidates that have websites (we check up to 150 candidates)
+        const filteredCandidates = uniqueCandidates.filter(c => !c.hasWebsite).slice(0, 150);
+        
+        await logToAll(`Found ${uniqueCandidates.length} unique place links for "${kw}". Skipped ${uniqueCandidates.length - filteredCandidates.length} places that have websites. Extracting details for the remaining ${filteredCandidates.length} candidates...`, 'info');
 
-        for (let idx = 0; idx < limitLinks.length; idx++) {
+        for (let idx = 0; idx < filteredCandidates.length; idx++) {
           // Stop if we have successfully scraped 60 leads overall (ensures at least 50 after deduping)
           if (allLeads.length >= 60) {
             await logToAll(`Target of 50+ leads achieved. Stopping details extraction for "${kw}".`, 'success');
             break;
           }
 
-          const link = limitLinks[idx];
+          const cand = filteredCandidates[idx];
+          const link = cand.link;
           try {
             const detailPage = await browser.newPage();
             await detailPage.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
