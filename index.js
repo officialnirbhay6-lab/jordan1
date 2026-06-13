@@ -121,26 +121,29 @@ async function retryCall(fn, retries = 3, delay = 2000) {
 
 // Retrieve setting from database/redis/fallbacks
 async function getSetting(key) {
+  let val = null;
+
   // Check Redis cache first
   if (redis) {
     try {
       const cached = await redis.get(`settings:${key}`);
-      if (cached !== null) return cached;
+      if (cached !== null) {
+        val = cached;
+      }
     } catch (err) {
       console.error(`Redis get error for ${key}:`, err.message);
     }
   }
 
   // Check Supabase
-  if (supabase) {
+  if (val === null && supabase) {
     try {
       const { data, error } = await supabase.from('settings').select('value').eq('key', key).single();
       if (!error && data) {
-        const val = data.value;
+        val = data.value;
         if (redis) {
           await redis.set(`settings:${key}`, val, { ex: 3600 }); // cache 1 hour
         }
-        return val;
       }
     } catch (err) {
       console.error(`Supabase get error for ${key}:`, err.message);
@@ -148,7 +151,15 @@ async function getSetting(key) {
   }
 
   // Fallback to default
-  return DEFAULT_SETTINGS[key] || "";
+  if (val === null) {
+    val = DEFAULT_SETTINGS[key] || "";
+  }
+
+  // Ensure it is returned as a string representation
+  if (typeof val === 'object' && val !== null) {
+    return JSON.stringify(val);
+  }
+  return val.toString();
 }
 
 // Retrieve setting as a safe Array
