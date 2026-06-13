@@ -629,10 +629,40 @@ async function getSerperPlacesLeads(city, selectedKeyword) {
   return uniqueLeads;
 }
 
+// Keyword synonyms for dynamic query expansion when scraping
+const KEYWORD_SYNONYMS = {
+  "clinic": ["doctor clinic", "physician", "medical clinic"],
+  "doctor": ["clinic", "consulting doctor", "specialist doctor"],
+  "hospital": ["nursing home", "healthcare center", "medical center"],
+  "real estate agency": ["property dealer", "real estate consultant", "real estate broker", "property consultant"],
+  "school": ["playschool", "primary school", "coaching center"],
+  "hotel": ["guest house", "resort", "motel"],
+  "restaurant": ["cafe", "diner", "food court"],
+  "coaching center": ["tuition center", "coaching classes", "academy"],
+  "gym": ["fitness center", "health club", "workout place"],
+  "salon": ["beauty parlour", "hair salon", "spa"],
+  "dentist": ["dental clinic", "dental hospital", "orthodontist"],
+  "cafe": ["coffee shop", "bakery", "restaurant"],
+  "boutique": ["clothing store", "designer boutique", "apparel shop"],
+  "event planner": ["wedding planner", "party planner", "decorators"]
+};
+
 // Local Puppeteer Google Maps Scraper helper
 async function getPuppeteerLeads(city, selectedKeyword) {
   const puppeteer = require('puppeteer');
-  const keywords = selectedKeyword ? [selectedKeyword] : await getSettingArray('keywords', ["clinic", "doctor", "hospital"]);
+  let baseKeywords = selectedKeyword ? [selectedKeyword] : await getSettingArray('keywords', ["clinic", "doctor", "hospital"]);
+  
+  // Expand keyword search if single keyword is provided, to guarantee 50+ leads
+  let keywords = [...baseKeywords];
+  if (selectedKeyword) {
+    const keyLower = selectedKeyword.toLowerCase().trim();
+    const syns = KEYWORD_SYNONYMS[keyLower];
+    if (syns) {
+      keywords = [selectedKeyword, ...syns];
+      await logToAll(`Expanded search for "${selectedKeyword}" with synonyms: ${syns.join(', ')} to target 50+ leads.`, 'info');
+    }
+  }
+
   const allLeads = [];
 
   await logToAll(`Launching local Puppeteer browser for location: ${city}...`, 'info');
