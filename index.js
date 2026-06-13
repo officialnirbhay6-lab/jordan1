@@ -663,6 +663,9 @@ async function getPuppeteerLeads(city, selectedKeyword) {
     await page.setViewport({ width: 1280, height: 800 });
 
     for (const kw of keywords) {
+      if (allLeads.length >= 60) {
+        break;
+      }
       const searchQuery = `${kw} in ${city}`;
       const url = `https://www.google.com/maps/search/${encodeURIComponent(searchQuery)}`;
       await logToAll(`Puppeteer loading: ${url}...`, 'info');
@@ -683,13 +686,35 @@ async function getPuppeteerLeads(city, selectedKeyword) {
         }
 
         if (listContainerSelector) {
-          // Scroll the feed to load more items (we want 30+ leads, so let's scroll 6-8 times)
-          for (let s = 0; s < 8; s++) {
+          // Scroll the feed dynamically to load more items (target 180+ listings or end of list)
+          await logToAll(`Scrolling results pane to load enough places for 50+ leads...`, 'info');
+          let previousCount = 0;
+          let noChangeCount = 0;
+
+          for (let s = 0; s < 35; s++) {
             await page.evaluate((sel) => {
               const el = document.querySelector(sel);
               if (el) el.scrollBy(0, el.scrollHeight);
             }, listContainerSelector);
-            await new Promise(r => setTimeout(r, 1500));
+
+            await new Promise(r => setTimeout(r, 1200));
+
+            const currentCount = await page.evaluate(() => {
+              return document.querySelectorAll('a[href*="/maps/place/"]').length;
+            });
+
+            if (currentCount >= 180) {
+              await logToAll(`Loaded ${currentCount} listings. Stopping scroll.`, 'info');
+              break;
+            }
+
+            if (currentCount === previousCount) {
+              noChangeCount++;
+              if (noChangeCount >= 4) break; // Reached end of listings list
+            } else {
+              noChangeCount = 0;
+            }
+            previousCount = currentCount;
           }
         }
 
@@ -702,10 +727,16 @@ async function getPuppeteerLeads(city, selectedKeyword) {
         const uniqueLinks = [...new Set(placeLinks)];
         await logToAll(`Found ${uniqueLinks.length} unique place links for "${kw}". Extracting details...`, 'info');
 
-        // We want 30+ leads, so limit loop to first 45 candidates to scrape
-        const limitLinks = uniqueLinks.slice(0, 45);
+        // We want at least 50 leads, check up to 150 candidates to find enough matches without websites
+        const limitLinks = uniqueLinks.slice(0, 150);
 
         for (let idx = 0; idx < limitLinks.length; idx++) {
+          // Stop if we have successfully scraped 60 leads overall (ensures at least 50 after deduping)
+          if (allLeads.length >= 60) {
+            await logToAll(`Target of 50+ leads achieved. Stopping details extraction for "${kw}".`, 'success');
+            break;
+          }
+
           const link = limitLinks[idx];
           try {
             const detailPage = await browser.newPage();
@@ -799,140 +830,178 @@ async function runLeadScraper(city, selectedKeyword = null) {
     let rawLeads = [];
     let items = [];
 
-    if (googleApiKey) {
-      currentScraperRun.status = "Querying Google Places API";
-      currentScraperRun.progress = 20;
-      await logToAll("Using Official Google Places API...", "info");
-      rawLeads = await getGooglePlacesLeads(city, selectedKeyword);
-    } else if (serperApiKey) {
-      currentScraperRun.status = "Querying Serper.dev API";
-      currentScraperRun.progress = 20;
-      await logToAll("Using Serper.dev Places API (Free, No Credit Card)...", "info");
-      rawLeads = await getSerperPlacesLeads(city, selectedKeyword);
-    } else if (process.env.USE_APIFY === "true" && apifyToken) {
-      currentScraperRun.status = "Sending request to Apify";
-      currentScraperRun.progress = 15;
-      await logToAll("Using Apify Google Places Scraper (Fallback)...", "info");
-      
-      const keywords = selectedKeyword ? [selectedKeyword] : await getSettingArray('keywords', ["clinic", "doctor", "hospital"]);
-      currentScraperRun.keyword = selectedKeyword || "All Keywords";
-      await logToAll(`Keywords to crawl: ${keywords.join(', ')}`, 'info');
+    // Prioritize local Puppeteer as the default/primary scraping method because it's free and reliable
+    const forceApi = process.env.FORCE_API_SCRAPER === "true";
 
-      const searchQueries = keywords.map(kw => `${kw} in ${city}`);
-      
-      const runResponse = await fetch(`https://api.apify.com/v2/acts/compass~crawler-google-places/runs?token=${apifyToken}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          searchStringsArray: searchQueries,
-          maxCrawledPlacesPerSearch: 150,
-          language: "en",
-          scrapeSocialMediaProfiles: {
-            facebooks: true,
-            instagrams: true,
-            youtubes: false,
-            tiktoks: false,
-            twitters: false
-          }
-        })
-      });
-
-      if (!runResponse.ok) {
-        const errTxt = await runResponse.text();
-        throw new Error(`Failed to start Apify crawl: ${errTxt}`);
-      }
-
-      const runData = await runResponse.json();
-      const runId = runData.data?.id;
-      const datasetId = runData.data?.defaultDatasetId;
-
-      if (!runId || !datasetId) throw new Error("Apify run ID or dataset ID not received.");
-
-      await logToAll(`Apify crawl started. Run ID: ${runId}. Polling every 5s...`, 'info');
-      currentScraperRun.status = "Crawling Google Places";
-      currentScraperRun.progress = 30;
-
-      const startTime = Date.now();
-      const timeoutMs = 15 * 60 * 1000;
-      let finished = false;
-      let attempts = 0;
-
-      while (Date.now() - startTime < timeoutMs) {
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        attempts++;
-
-        const checkResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}?token=${apifyToken}`);
-        if (!checkResponse.ok) {
-          console.error(`Apify status check returned non-ok: ${checkResponse.status}`);
-          continue;
-        }
-
-        const checkData = await checkResponse.json();
-        const status = checkData.data?.status;
-
-        currentScraperRun.progress = Math.min(90, 30 + Math.floor((attempts * 5) / 900 * 60));
-        await logToAll(`Crawl status: ${status} (Elapsed: ${Math.floor((Date.now() - startTime)/1000)}s)`, 'info');
-
-        if (['SUCCEEDED', 'FAILED', 'TIMED-OUT', 'ABORTED'].includes(status)) {
-          if (status === 'SUCCEEDED') {
-            finished = true;
-          } else {
-            throw new Error(`Apify crawl completed with status: ${status}`);
-          }
-          break;
-        }
-      }
-
-      if (!finished) {
-        throw new Error("Apify crawl timed out after 15 minutes.");
-      }
-
-      currentScraperRun.status = "Fetching results";
-      currentScraperRun.progress = 92;
-      await logToAll(`Fetching results from Apify dataset ${datasetId}...`, 'info');
-
-      const itemsResponse = await fetch(`https://api.apify.com/v2/datasets/${datasetId}/items?token=${apifyToken}`);
-      if (!itemsResponse.ok) throw new Error("Failed to fetch dataset items.");
-
-      const rawItems = await itemsResponse.json();
-      await logToAll(`Retrieved ${rawItems.length} items from Apify. Processing...`, 'info');
-
-      for (const item of rawItems) {
-        const phone = item.phoneUnformatted || item.phone;
-        if (!phone) continue;
-
-        const website = item.website || "";
-        if (website) continue; // Skip if website exists
-
-        let email = "";
-        if (item.email) {
-          email = item.email;
-        } else if (Array.isArray(item.emails) && item.emails.length > 0) {
-          email = item.emails[0];
-        } else if (typeof item.emails === 'string' && item.emails.trim()) {
-          email = item.emails.split(',')[0].trim();
-        } else if (item.contactEmail) {
-          email = item.contactEmail;
-        } else if (Array.isArray(item.scraped_emails) && item.scraped_emails.length > 0) {
-          const first = item.scraped_emails[0];
-          email = typeof first === 'object' ? (first.email || first.value || "") : first;
-        }
-
-        rawLeads.push({
-          name: item.title || item.name,
-          phone: phone,
-          website: "",
-          category: item.categoryName || item.subTitle || "Local Business",
-          rating: item.totalScore || item.stars || 0,
-          address: item.address || "",
-          email: email
-        });
-      }
-    } else {
+    if (!forceApi) {
       currentScraperRun.status = "Querying via Local Puppeteer";
       currentScraperRun.progress = 20;
-      await logToAll("Using Built-in Local Puppeteer Scraper (Free Fallback)...", "info");
-      rawLeads = await getPuppeteerLeads(city, selectedKeyword);
+      await logToAll("Using Built-in Local Puppeteer Scraper (Primary)...", "info");
+      try {
+        rawLeads = await getPuppeteerLeads(city, selectedKeyword);
+        if (rawLeads && rawLeads.length > 0) {
+          await logToAll(`Puppeteer successfully scraped ${rawLeads.length} leads.`, 'success');
+        }
+      } catch (err) {
+        await logToAll(`⚠️ Local Puppeteer failed: ${err.message}. Trying API fallbacks...`, 'warning');
+      }
+    }
+
+    // Fallbacks if Puppeteer failed or returned 0 leads, or if APIs are forced
+    if (rawLeads.length === 0) {
+      if (googleApiKey) {
+        currentScraperRun.status = "Querying Google Places API";
+        currentScraperRun.progress = 20;
+        await logToAll("Using Official Google Places API (Fallback)...", "info");
+        try {
+          rawLeads = await getGooglePlacesLeads(city, selectedKeyword);
+        } catch (err) {
+          await logToAll(`⚠️ Google Places API failed: ${err.message}`, 'error');
+        }
+      } else if (serperApiKey) {
+        currentScraperRun.status = "Querying Serper.dev API";
+        currentScraperRun.progress = 20;
+        await logToAll("Using Serper.dev Places API (Fallback)...", "info");
+        try {
+          rawLeads = await getSerperPlacesLeads(city, selectedKeyword);
+        } catch (err) {
+          await logToAll(`⚠️ Serper.dev Places API failed: ${err.message}`, 'error');
+        }
+      } else if (process.env.USE_APIFY === "true" && apifyToken) {
+        currentScraperRun.status = "Sending request to Apify";
+        currentScraperRun.progress = 15;
+        await logToAll("Using Apify Google Places Scraper (Fallback)...", "info");
+        try {
+          const keywords = selectedKeyword ? [selectedKeyword] : await getSettingArray('keywords', ["clinic", "doctor", "hospital"]);
+          currentScraperRun.keyword = selectedKeyword || "All Keywords";
+          await logToAll(`Keywords to crawl: ${keywords.join(', ')}`, 'info');
+
+          const searchQueries = keywords.map(kw => `${kw} in ${city}`);
+          
+          const runResponse = await fetch(`https://api.apify.com/v2/acts/compass~crawler-google-places/runs?token=${apifyToken}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              searchStringsArray: searchQueries,
+              maxCrawledPlacesPerSearch: 150,
+              language: "en",
+              scrapeSocialMediaProfiles: {
+                facebooks: true,
+                instagrams: true,
+                youtubes: false,
+                tiktoks: false,
+                twitters: false
+              }
+            })
+          });
+
+          if (!runResponse.ok) {
+            const errTxt = await runResponse.text();
+            throw new Error(`Failed to start Apify crawl: ${errTxt}`);
+          }
+
+          const runData = await runResponse.json();
+          const runId = runData.data?.id;
+          const datasetId = runData.data?.defaultDatasetId;
+
+          if (!runId || !datasetId) throw new Error("Apify run ID or dataset ID not received.");
+
+          await logToAll(`Apify crawl started. Run ID: ${runId}. Polling every 5s...`, 'info');
+          currentScraperRun.status = "Crawling Google Places";
+          currentScraperRun.progress = 30;
+
+          const startTime = Date.now();
+          const timeoutMs = 15 * 60 * 1000;
+          let finished = false;
+          let attempts = 0;
+
+          while (Date.now() - startTime < timeoutMs) {
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            attempts++;
+
+            const checkResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}?token=${apifyToken}`);
+            if (!checkResponse.ok) {
+              console.error(`Apify status check returned non-ok: ${checkResponse.status}`);
+              continue;
+            }
+
+            const checkData = await checkResponse.json();
+            const status = checkData.data?.status;
+
+            currentScraperRun.progress = Math.min(90, 30 + Math.floor((attempts * 5) / 900 * 60));
+            await logToAll(`Crawl status: ${status} (Elapsed: ${Math.floor((Date.now() - startTime)/1000)}s)`, 'info');
+
+            if (['SUCCEEDED', 'FAILED', 'TIMED-OUT', 'ABORTED'].includes(status)) {
+              if (status === 'SUCCEEDED') {
+                finished = true;
+              } else {
+                throw new Error(`Apify crawl completed with status: ${status}`);
+              }
+              break;
+            }
+          }
+
+          if (!finished) {
+            throw new Error("Apify crawl timed out after 15 minutes.");
+          }
+
+          currentScraperRun.status = "Fetching results";
+          currentScraperRun.progress = 92;
+          await logToAll(`Fetching results from Apify dataset ${datasetId}...`, 'info');
+
+          const itemsResponse = await fetch(`https://api.apify.com/v2/datasets/${datasetId}/items?token=${apifyToken}`);
+          if (!itemsResponse.ok) throw new Error("Failed to fetch dataset items.");
+
+          const rawItems = await itemsResponse.json();
+          await logToAll(`Retrieved ${rawItems.length} items from Apify. Processing...`, 'info');
+
+          for (const item of rawItems) {
+            const phone = item.phoneUnformatted || item.phone;
+            if (!phone) continue;
+
+            const website = item.website || "";
+            if (website) continue; // Skip if website exists
+
+            let email = "";
+            if (item.email) {
+              email = item.email;
+            } else if (Array.isArray(item.emails) && item.emails.length > 0) {
+              email = item.emails[0];
+            } else if (typeof item.emails === 'string' && item.emails.trim()) {
+              email = item.emails.split(',')[0].trim();
+            } else if (item.contactEmail) {
+              email = item.contactEmail;
+            } else if (Array.isArray(item.scraped_emails) && item.scraped_emails.length > 0) {
+              const first = item.scraped_emails[0];
+              email = typeof first === 'object' ? (first.email || first.value || "") : first;
+            }
+
+            rawLeads.push({
+              name: item.title || item.name,
+              phone: phone,
+              website: "",
+              category: item.categoryName || item.subTitle || "Local Business",
+              rating: item.totalScore || item.stars || 0,
+              address: item.address || "",
+              email: email
+            });
+          }
+        } catch (err) {
+          await logToAll(`⚠️ Apify Scraper failed: ${err.message}`, 'error');
+        }
+      }
+    }
+
+    // Final fallback if forceApi was true but returned nothing
+    if (rawLeads.length === 0 && forceApi) {
+      currentScraperRun.status = "Querying via Local Puppeteer";
+      currentScraperRun.progress = 20;
+      await logToAll("Using Built-in Local Puppeteer Scraper (Fallback)...", "info");
+      try {
+        rawLeads = await getPuppeteerLeads(city, selectedKeyword);
+      } catch (err) {
+        await logToAll(`⚠️ Local Puppeteer fallback failed: ${err.message}`, 'error');
+      }
     }
 
     // Now, run the local email crawler for any leads that don't have emails yet
