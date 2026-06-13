@@ -639,7 +639,7 @@ async function getPuppeteerLeads(city, selectedKeyword) {
 
   let browser;
   try {
-    browser = await puppeteer.launch({
+    const launchOptions = {
       headless: true,
       args: [
         '--no-sandbox',
@@ -648,7 +648,21 @@ async function getPuppeteerLeads(city, selectedKeyword) {
         '--disable-gpu',
         '--window-size=1280,800'
       ]
-    });
+    };
+
+    if (process.platform === 'linux') {
+      try {
+        const { execSync } = require('child_process');
+        const path = execSync('which chromium').toString().trim();
+        launchOptions.executablePath = path;
+        await logToAll(`Resolved system chromium path: ${path}`, 'info');
+      } catch (e) {
+        launchOptions.executablePath = 'chromium';
+        await logToAll(`Could not resolve chromium path with 'which'. Using default 'chromium'.`, 'info');
+      }
+    }
+
+    browser = await puppeteer.launch(launchOptions);
 
     const page = await browser.newPage();
     // Set realistic user agent
