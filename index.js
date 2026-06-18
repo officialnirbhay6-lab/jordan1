@@ -17,6 +17,72 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Auth and role checking middleware
+function requireAuth(allowedRoles = []) {
+  return (req, res, next) => {
+    // For SSE logs stream, allow token via query param
+    let token = req.query.token;
+    
+    // Otherwise check Authorization header
+    const authHeader = req.headers['authorization'];
+    if (!token && authHeader) {
+      token = authHeader.replace('Bearer ', '').trim();
+    }
+
+    if (!token) {
+      return res.status(401).json({ error: "Authentication token is required." });
+    }
+
+    let role = null;
+    if (token === 'bearer-token-caller-90skids-4578') {
+      role = 'caller';
+    } else if (token === 'bearer-token-management-nirbhaaay-9999') {
+      role = 'management';
+    }
+
+    if (!role) {
+      return res.status(401).json({ error: "Invalid or expired authentication token." });
+    }
+
+    req.user = { role };
+
+    if (allowedRoles.length === 0 || allowedRoles.includes(role)) {
+      return next();
+    }
+
+    return res.status(403).json({ error: "Access forbidden: Insufficient permissions." });
+  };
+}
+
+// User Login Endpoint
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ error: "Username and password are required." });
+  }
+
+  const cleanUser = username.trim();
+  const cleanPass = password.trim();
+
+  if (cleanUser === '90skids' && cleanPass === '4578') {
+    return res.json({
+      success: true,
+      role: 'caller',
+      token: 'bearer-token-caller-90skids-4578',
+      username: '90skids'
+    });
+  } else if (cleanUser === 'nirbhaaay' && cleanPass === '9999') {
+    return res.json({
+      success: true,
+      role: 'management',
+      token: 'bearer-token-management-nirbhaaay-9999',
+      username: 'nirbhaaay'
+    });
+  } else {
+    return res.status(401).json({ error: "Invalid username or password" });
+  }
+});
+
 // Redirect root to dashboard
 app.get('/', (req, res) => {
   res.redirect('/dashboard.html');
@@ -213,6 +279,25 @@ async function checkDatabaseSchema() {
     if (error && error.message.includes("does not exist")) {
       return false;
     }
+
+    // Check if leads table has contacted, interested, not_interested columns
+    try {
+      const { data: leadData } = await supabase.from('leads').select('*').limit(1);
+      if (leadData && leadData.length > 0) {
+        const firstRow = leadData[0];
+        if (firstRow.contacted === undefined || firstRow.interested === undefined || firstRow.not_interested === undefined) {
+          console.warn("\n⚠️  [DATABASE WARNING] Columns 'contacted', 'interested', or 'not_interested' are missing from the 'leads' table in Supabase.");
+          console.warn("👉 Please execute the following SQL in your Supabase SQL Editor to support the calling status ticks:\n");
+          console.warn(`ALTER TABLE public.leads 
+ADD COLUMN IF NOT EXISTS contacted boolean DEFAULT false,
+ADD COLUMN IF NOT EXISTS interested boolean DEFAULT false,
+ADD COLUMN IF NOT EXISTS not_interested boolean DEFAULT false;\n`);
+        }
+      }
+    } catch (e) {
+      console.error("Error inspecting leads table columns:", e.message);
+    }
+
     return true;
   } catch (err) {
     return false;
@@ -1545,7 +1630,7 @@ async function initCronScheduler() {
 // --- EXPRESS APP ROUTES ---
 
 // Server-Sent Events (SSE) Route for live logging
-app.get('/api/logs/stream', (req, res) => {
+app.get('/api/logs/stream', requireAuth(['management']), (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -1632,7 +1717,7 @@ app.get('/health', async (req, res) => {
 });
 
 // Fetch metrics / stats for dashboard
-app.get('/api/stats', async (req, res) => {
+app.get('/api/stats', requireAuth(['caller', 'management']), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: "Database not connected." });
 
   try {
@@ -1660,7 +1745,7 @@ app.get('/api/stats', async (req, res) => {
 });
 
 // Fetch leads with optional filtering
-app.get('/api/leads', async (req, res) => {
+app.get('/api/leads', requireAuth(['caller', 'management']), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: "Database not connected." });
 
   const { filter, search, page = 1, limit = 20 } = req.query;
@@ -1716,7 +1801,7 @@ app.get('/api/leads', async (req, res) => {
 });
 
 // Export leads as CSV
-app.get('/api/leads/export', async (req, res) => {
+app.get('/api/leads/export', requireAuth(['caller', 'management']), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: "Database not connected." });
   
   const { filter, search } = req.query;
@@ -1779,7 +1864,7 @@ app.get('/api/leads/export', async (req, res) => {
 });
 
 // Save lead notes
-app.post('/api/leads/:id/notes', async (req, res) => {
+app.post('/api/leads/:id/notes', requireAuth(['caller', 'management']), async (req, res) => {
   if (!supabase) return res.status(500).json({ error: "Database not connected." });
   const { notes } = req.body;
   try {
@@ -1791,17 +1876,47 @@ app.post('/api/leads/:id/notes', async (req, res) => {
   }
 });
 
+// Update lead call status
+app.post('/api/leads/:id/status', requireAuth(['caller', 'management']), async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: "Database not connected." });
+  const { contacted, interested, not_interested } = req.body;
+  
+  const updates = {};
+  if (contacted !== undefined) updates.contacted = !!contacted;
+  if (interested !== undefined) updates.interested = !!interested;
+  if (not_interested !== undefined) updates.not_interested = !!not_interested;
+
+  try {
+    const { error } = await supabase.from('leads').update(updates).eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Fetch settings
-app.get('/api/settings', async (req, res) => {
+app.get('/api/settings', requireAuth(['caller', 'management']), async (req, res) => {
   const settings = {};
   for (const key of Object.keys(DEFAULT_SETTINGS)) {
     settings[key] = await getSetting(key);
   }
+  
+  // Redact sensitive keys for callers
+  if (req.user.role === 'caller') {
+    const sensitiveKeys = ['gemini_api_key', 'serper_api_key', 'resend_api_key', 'smtp_pass', 'smtp_user', 'smtp_host', 'smtp_port'];
+    sensitiveKeys.forEach(k => {
+      if (settings[k]) {
+        settings[k] = '********'; // Mask key
+      }
+    });
+  }
+  
   res.json(settings);
 });
 
 // Save settings
-app.post('/api/settings', async (req, res) => {
+app.post('/api/settings', requireAuth(['management']), async (req, res) => {
   const newSettings = req.body;
   try {
     for (const [key, value] of Object.entries(newSettings)) {
@@ -1821,7 +1936,7 @@ app.post('/api/settings', async (req, res) => {
 });
 
 // Manual scraper trigger
-app.post('/api/scraper/trigger', (req, res) => {
+app.post('/api/scraper/trigger', requireAuth(['management']), (req, res) => {
   if (currentScraperRun.active) {
     return res.status(400).json({ error: "Scraper is already active." });
   }
@@ -1835,7 +1950,7 @@ app.post('/api/scraper/trigger', (req, res) => {
 });
 
 // Manual WhatsApp send
-app.post('/api/outreach/whatsapp', async (req, res) => {
+app.post('/api/outreach/whatsapp', requireAuth(['management']), async (req, res) => {
   const { leadId, text } = req.body;
   if (!leadId || !text) return res.status(400).json({ error: "Lead ID and text are required." });
 
@@ -1857,7 +1972,7 @@ app.post('/api/outreach/whatsapp', async (req, res) => {
 });
 
 // Manual Email send
-app.post('/api/outreach/email', async (req, res) => {
+app.post('/api/outreach/email', requireAuth(['management']), async (req, res) => {
   const { leadId, subject, body } = req.body;
   if (!leadId || !subject || !body) return res.status(400).json({ error: "Lead ID, subject, and body are required." });
 
@@ -1909,7 +2024,7 @@ app.post('/api/outreach/email', async (req, res) => {
 });
 
 // Broadcast WhatsApp message to multiple leads
-app.post('/api/outreach/broadcast', async (req, res) => {
+app.post('/api/outreach/broadcast', requireAuth(['management']), async (req, res) => {
   const { filter, leadIds, text } = req.body;
   if (!text) return res.status(400).json({ error: "Message text is required." });
 
@@ -1986,7 +2101,7 @@ app.post('/api/outreach/broadcast', async (req, res) => {
 });
 
 // Test WhatsApp send to Owner
-app.post('/api/outreach/test-wa', async (req, res) => {
+app.post('/api/outreach/test-wa', requireAuth(['management']), async (req, res) => {
   const { text } = req.body;
   const ownerWa = process.env.WHATSAPP_OWNER || "917717766958";
   try {
@@ -2001,7 +2116,7 @@ app.post('/api/outreach/test-wa', async (req, res) => {
 });
 
 // Test Email send
-app.post('/api/outreach/test-email', async (req, res) => {
+app.post('/api/outreach/test-email', requireAuth(['management']), async (req, res) => {
   const { to, subject, body } = req.body;
   if (!to || !subject || !body) return res.status(400).json({ error: "To, subject, and body are required." });
 
@@ -2046,7 +2161,7 @@ app.post('/api/outreach/test-email', async (req, res) => {
 });
 
 // Manual Daily Trigger (test the cron flow immediately)
-app.post('/api/scheduler/trigger-now', (req, res) => {
+app.post('/api/scheduler/trigger-now', requireAuth(['management']), (req, res) => {
   triggerDailyOutreachFlow();
   res.json({ success: true, message: "Daily cron run triggered immediately." });
 });

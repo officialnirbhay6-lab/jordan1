@@ -31,6 +31,9 @@ CREATE TABLE IF NOT EXISTS public.leads (
     has_website boolean DEFAULT false,
     email_sent boolean DEFAULT false,
     wa_sent boolean DEFAULT false,
+    contacted boolean DEFAULT false,
+    interested boolean DEFAULT false,
+    not_interested boolean DEFAULT false,
     notes text,
     scraped_at timestamp with time zone DEFAULT now()
 );

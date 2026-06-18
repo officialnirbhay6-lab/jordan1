@@ -923,9 +923,125 @@
         width: auto;
       }
     }
+    
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes unspin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(-360deg); }
+    }
+    
+    /* Twinkling Stars Background */
+    .star {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: #fff;
+      border-radius: 50%;
+      opacity: 0;
+      animation: star-twinkle var(--twinkle-duration, 3s) infinite ease-in-out;
+      pointer-events: none;
+    }
+    
+    @keyframes star-twinkle {
+      0%, 100% { opacity: 0; transform: scale(0.8); }
+      50% { opacity: var(--max-opacity, 0.7); transform: scale(1.2); }
+    }
+
+
+
+
+    /* Role selection buttons */
+    .role-btn {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-muted);
+      border: 1px solid rgba(255, 255, 255, 0.05) !important;
+      outline: none;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .role-btn.active {
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark)) !important;
+      color: #000 !important;
+      box-shadow: 0 0 15px var(--gold-glow);
+      border-color: var(--gold) !important;
+    }
   </style>
 </head>
 <body>
+
+  <!-- Login Overlay -->
+  <div id="login-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(8, 8, 8, 0.85); backdrop-filter:blur(24px); z-index:9999; display:flex; justify-content:center; align-items:center; overflow:hidden;">
+    
+    <!-- Twinkling Stars Background -->
+    <div class="stars-container" style="position: absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; pointer-events:none; z-index: 0; opacity: 0.6;">
+      <div class="star" style="top: 15%; left: 12%; --twinkle-duration: 2.2s; --max-opacity: 0.8;"></div>
+      <div class="star" style="top: 25%; left: 35%; --twinkle-duration: 3.5s; --max-opacity: 0.6;"></div>
+      <div class="star" style="top: 8%; left: 62%; --twinkle-duration: 1.8s; --max-opacity: 0.9;"></div>
+      <div class="star" style="top: 18%; left: 88%; --twinkle-duration: 4.0s; --max-opacity: 0.5;"></div>
+      <div class="star" style="top: 45%; left: 18%; --twinkle-duration: 2.7s; --max-opacity: 0.7;"></div>
+      <div class="star" style="top: 55%; left: 48%; --twinkle-duration: 3.1s; --max-opacity: 0.8;"></div>
+      <div class="star" style="top: 38%; left: 78%; --twinkle-duration: 2.4s; --max-opacity: 0.6;"></div>
+      <div class="star" style="top: 68%; left: 92%; --twinkle-duration: 3.8s; --max-opacity: 0.5;"></div>
+      <div class="star" style="top: 82%; left: 15%; --twinkle-duration: 2.9s; --max-opacity: 0.7;"></div>
+      <div class="star" style="top: 76%; left: 58%; --twinkle-duration: 3.3s; --max-opacity: 0.9;"></div>
+      <div class="star" style="top: 88%; left: 82%; --twinkle-duration: 2.1s; --max-opacity: 0.8;"></div>
+      <div class="star" style="top: 52%; left: 3%; --twinkle-duration: 4.2s; --max-opacity: 0.4;"></div>
+      <div class="star" style="top: 30%; left: 50%; --twinkle-duration: 2.6s; --max-opacity: 0.7;"></div>
+      <div class="star" style="top: 64%; left: 28%; --twinkle-duration: 3.0s; --max-opacity: 0.8;"></div>
+      <div class="star" style="top: 84%; left: 44%; --twinkle-duration: 1.9s; --max-opacity: 0.6;"></div>
+      <div class="star" style="top: 92%; left: 69%; --twinkle-duration: 3.7s; --max-opacity: 0.5;"></div>
+    </div>
+
+
+
+
+    <div style="background:rgba(22, 22, 22, 0.9); border:1px solid var(--card-border-active); box-shadow:0 0 35px var(--gold-glow); padding:40px; border-radius:16px; width:420px; text-align:center; position:relative; z-index: 2;">
+      <!-- Futuristic cybernetic eye graphic -->
+      <div class="cyber-eye-container" style="position: relative; width: 100px; height: 100px; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center;">
+        <!-- Glowing eye icon -->
+        <i data-lucide="eye" style="width: 44px; height: 44px; color: var(--gold); filter: drop-shadow(0 0 8px var(--gold-glow)); z-index: 2;"></i>
+        <!-- Rotating biometric scanner rings -->
+        <div style="position: absolute; width: 80px; height: 80px; border: 1.5px solid var(--gold-glow); border-radius: 50%; animation: spin 8s linear infinite;"></div>
+        <div style="position: absolute; width: 95px; height: 95px; border: 1px dashed rgba(212, 175, 55, 0.4); border-radius: 50%; animation: unspin 12s linear infinite;"></div>
+        <div style="position: absolute; width: 60px; height: 60px; border: 2px solid var(--gold); border-radius: 50%; border-left-color: transparent; border-right-color: transparent; animation: spin 4s ease-in-out infinite;"></div>
+      </div>
+
+      <h2 style="font-family:var(--font-title); font-weight:700; color:var(--gold); margin-bottom:8px; font-size:1.8rem; letter-spacing:1px;">JORDAN PORTAL</h2>
+      <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:25px;">Select role & enter password to access Lead Gen Agent</p>
+      
+      <!-- Login As Role Selector -->
+      <div class="role-selector" style="display: flex; gap: 10px; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 6px; margin-bottom: 20px;">
+        <button id="role-caller" onclick="selectRole('caller')" class="role-btn active" style="flex: 1; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-family: var(--font-title); font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <i data-lucide="user"></i> Admin
+        </button>
+        <button id="role-management" onclick="selectRole('management')" class="role-btn" style="flex: 1; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-family: var(--font-title); font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <i data-lucide="shield"></i> Management
+        </button>
+      </div>
+
+      <!-- Helper info text showing auto-selected username -->
+      <p id="role-info-text" style="color:var(--text-muted); font-size:0.8rem; margin-bottom:20px; text-align:center;">
+        Signing in as admin/caller staff (username: 90skids)
+      </p>
+
+      <!-- Hidden username input, auto-managed -->
+      <input type="hidden" id="login-username" value="90skids">
+      
+      <div style="text-align:left; margin-bottom:30px;">
+        <label style="display:block; color:var(--text-main); font-size:0.85rem; font-weight:600; margin-bottom:8px;">Password</label>
+        <input type="password" id="login-password" style="width:100%; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:12px; color:#fff; outline:none; transition:border-color 0.3s;" placeholder="Enter password">
+      </div>
+      
+      <div id="login-error" style="color:#ff3333; font-size:0.85rem; margin-bottom:20px; display:none;"></div>
+      
+      <button class="btn" id="login-btn" onclick="submitLogin()" style="width:100%; background:linear-gradient(135deg, var(--gold), var(--gold-dark)); color:#000; font-weight:700; border:none; padding:14px; border-radius:8px; cursor:pointer; font-size:1rem; box-shadow:0 0 15px var(--gold-glow); transition:transform 0.2s, box-shadow 0.2s; display:block;">
+        Sign In
+      </button>
+    </div>
+  </div>
 
   <div class="app-container">
     
@@ -982,11 +1098,14 @@
         </div>
       </div>
 
-      <div class="sidebar-footer">
+      <div class="sidebar-footer" style="display:flex; flex-direction:column; gap:10px;">
         <div class="status-badge" id="wa-connection-status">
           <div class="status-dot"></div>
           <span>Green API Authorized</span>
         </div>
+        <button class="btn btn-secondary btn-sm" onclick="logout()" style="width:100%; font-size:0.8rem; padding:8px; border-radius:6px; display:flex; align-items:center; justify-content:center; gap:6px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#fff; cursor:pointer;">
+          <i data-lucide="log-out" style="width:14px;height:14px;"></i> Sign Out
+        </button>
       </div>
     </div>
 
@@ -1586,6 +1705,148 @@
   </div>
 
   <script>
+    // Global Fetch Interceptor for Auth
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options = {}) {
+      const token = localStorage.getItem('jordan_token');
+      if (token) {
+        options.headers = options.headers || {};
+        if (options.headers instanceof Headers) {
+          options.headers.set('Authorization', `Bearer ${token}`);
+        } else if (Array.isArray(options.headers)) {
+          options.headers.push(['Authorization', `Bearer ${token}`]);
+        } else {
+          options.headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+      return originalFetch(url, options).then(response => {
+        if (response.status === 401 && !url.includes('/api/login')) {
+          localStorage.removeItem('jordan_token');
+          localStorage.removeItem('jordan_role');
+          localStorage.removeItem('jordan_username');
+          document.getElementById('login-overlay').style.display = 'flex';
+          document.querySelector('.app-container').style.filter = 'blur(15px)';
+        }
+        return response;
+      });
+    };
+
+    // Select login role (caller/admin vs. management)
+    let selectedLoginRole = 'caller';
+    function selectRole(role) {
+      selectedLoginRole = role;
+      document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('active'));
+      const infoText = document.getElementById('role-info-text');
+      const usernameInput = document.getElementById('login-username');
+      
+      if (role === 'caller') {
+        document.getElementById('role-caller').classList.add('active');
+        usernameInput.value = '90skids';
+        infoText.innerText = "Signing in as admin/caller staff (username: 90skids)";
+      } else {
+        document.getElementById('role-management').classList.add('active');
+        usernameInput.value = 'nirbhaaay';
+        infoText.innerText = "Signing in as management owner (username: nirbhaaay)";
+      }
+    }
+
+    // Submit user credentials
+    async function submitLogin() {
+      const usernameInput = document.getElementById('login-username');
+      const passwordInput = document.getElementById('login-password');
+      const errorDiv = document.getElementById('login-error');
+      const loginBtn = document.getElementById('login-btn');
+
+      const username = usernameInput.value.trim();
+      const password = passwordInput.value.trim();
+
+      if (!username || !password) {
+        errorDiv.innerText = "Please enter both username and password.";
+        errorDiv.style.display = 'block';
+        return;
+      }
+
+      errorDiv.style.display = 'none';
+      loginBtn.disabled = true;
+      loginBtn.innerText = "Signing In...";
+
+      try {
+        const response = await originalFetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          localStorage.setItem('jordan_token', data.token);
+          localStorage.setItem('jordan_role', data.role);
+          localStorage.setItem('jordan_username', data.username);
+
+          showToast("Logged in successfully!", "success");
+          
+          document.getElementById('login-overlay').style.display = 'none';
+          document.querySelector('.app-container').style.filter = 'none';
+
+          applyRoleViews(data.role);
+
+          usernameInput.value = '';
+          passwordInput.value = '';
+
+          initDashboard();
+        } else {
+          errorDiv.innerText = data.error || "Invalid username or password.";
+          errorDiv.style.display = 'block';
+        }
+      } catch (err) {
+        errorDiv.innerText = "Server connection failed: " + err.message;
+        errorDiv.style.display = 'block';
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.innerText = "Sign In";
+      }
+    }
+
+    // Logout function
+    function logout() {
+      localStorage.removeItem('jordan_token');
+      localStorage.removeItem('jordan_role');
+      localStorage.removeItem('jordan_username');
+      showToast("Signed out successfully.", "info");
+
+      document.getElementById('login-overlay').style.display = 'flex';
+      document.querySelector('.app-container').style.filter = 'blur(15px)';
+      
+      selectRole('caller');
+      resetDashboard();
+    }
+
+    // Role-based view updates
+    function applyRoleViews(role) {
+      const restrictedTabs = ['scraper', 'whatsapp', 'email', 'template', 'schedule', 'logs'];
+      restrictedTabs.forEach(tab => {
+        const item = document.querySelector(`.nav-item[data-tab="${tab}"]`);
+        if (item) {
+          item.style.display = role === 'caller' ? 'none' : 'flex';
+        }
+      });
+
+      const broadcastBtn = document.querySelector('button[onclick="openBroadcastModal()"]');
+      if (broadcastBtn) {
+        broadcastBtn.style.display = role === 'caller' ? 'none' : 'flex';
+      }
+
+      const activeNav = document.querySelector('.nav-item.active');
+      if (activeNav) {
+        const currentTab = activeNav.getAttribute('data-tab');
+        if (role === 'caller' && restrictedTabs.includes(currentTab)) {
+          const leadsNav = document.querySelector('.nav-item[data-tab="leads"]');
+          if (leadsNav) leadsNav.click();
+        }
+      }
+    }
+
     // Premium Toast Notification Helper
     function showToast(message, type = 'success') {
       let container = document.getElementById('toast-container');
@@ -1685,22 +1946,78 @@
     let currentPage = 1;
     let totalPages = 1;
 
+    let isInitialized = false;
+    let sseEventSource = null;
+
     // Load data on window load
     window.onload = function() {
       lucide.createIcons();
+      
+      const token = localStorage.getItem('jordan_token');
+      const role = localStorage.getItem('jordan_role');
+
+      if (!token || !role) {
+        // Show login overlay
+        document.getElementById('login-overlay').style.display = 'flex';
+        document.querySelector('.app-container').style.filter = 'blur(15px)';
+      } else {
+        // Hide login overlay
+        document.getElementById('login-overlay').style.display = 'none';
+        document.querySelector('.app-container').style.filter = 'none';
+        
+        applyRoleViews(role);
+        initDashboard();
+      }
+    };
+
+    function initDashboard() {
+      if (isInitialized) return;
+      isInitialized = true;
+
+      const role = localStorage.getItem('jordan_role');
+
       fetchStats();
       checkAllConnections();
-      startLogsStream();
       startStatusPoller();
       fetchSettings();
-    };
+      
+      if (role !== 'caller') {
+        startLogsStream();
+      } else {
+        // Switch to leads tab for caller
+        document.querySelector('[data-tab="leads"]').click();
+      }
+    }
+
+    function resetDashboard() {
+      isInitialized = false;
+      if (sseEventSource) {
+        sseEventSource.close();
+        sseEventSource = null;
+      }
+      
+      // Clear console
+      const consoleEl = document.getElementById('logs-console');
+      if (consoleEl) consoleEl.innerHTML = '';
+      
+      // Clear leads table body
+      const tableBody = document.getElementById('leads-table-body');
+      if (tableBody) tableBody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">Please log in to view leads.</td></tr>';
+    }
 
     // SSE Logs connection
     function startLogsStream() {
       const consoleEl = document.getElementById('logs-console');
-      const eventSource = new EventSource('/api/logs/stream');
+      const token = localStorage.getItem('jordan_token');
+      if (!token) return;
+
+      if (sseEventSource) {
+        sseEventSource.close();
+      }
+
+      sseEventSource = new EventSource('/api/logs/stream?token=' + encodeURIComponent(token));
       
-      eventSource.onmessage = function(event) {
+      sseEventSource.onmessage = function(event) {
         const log = JSON.parse(event.data);
         const logLine = document.createElement('div');
         logLine.classList.add('console-line', log.level || 'info');
@@ -1712,7 +2029,7 @@
         consoleEl.scrollTop = consoleEl.scrollHeight;
       };
 
-      eventSource.onerror = function() {
+      sseEventSource.onerror = function() {
         console.error("SSE connection lost. Reconnecting...");
       };
     }
@@ -1873,6 +2190,32 @@
             }
             const scoreHTML = `<div style="font-weight:700; color:${scoreColor};">${leadScore} <span style="font-size:0.7rem; font-weight:500; opacity:0.85; padding-left:4px;">(${scoreText})</span></div>`;
 
+            // call status checkboxes
+            const contactedChecked = lead.contacted ? 'checked' : '';
+            const interestedChecked = lead.interested ? 'checked' : '';
+            const notInterestedChecked = lead.not_interested ? 'checked' : '';
+
+            const callStatusHTML = `
+              <div class="call-status-ticks" style="display:flex; flex-direction:column; gap:4px; margin-top:6px; border-top:1px solid rgba(255,255,255,0.08); padding-top:6px; text-align:left;">
+                <label style="display:flex; align-items:center; gap:6px; font-size:0.75rem; cursor:pointer; color:var(--text-main);">
+                  <input type="checkbox" style="accent-color:var(--gold);" ${contactedChecked} onchange="updateLeadCallStatus('${lead.id}', 'contacted', this.checked)">
+                  Contacted
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; font-size:0.75rem; cursor:pointer; color:var(--text-main);">
+                  <input type="checkbox" style="accent-color:var(--green);" ${interestedChecked} onchange="updateLeadCallStatus('${lead.id}', 'interested', this.checked)">
+                  Interested
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; font-size:0.75rem; cursor:pointer; color:var(--text-main);">
+                  <input type="checkbox" style="accent-color:#ff3333;" ${notInterestedChecked} onchange="updateLeadCallStatus('${lead.id}', 'not_interested', this.checked)">
+                  Not Interested
+                </label>
+              </div>
+            `;
+
+            // Hide manual outreach triggers in actions for caller role
+            const isCaller = localStorage.getItem('jordan_role') === 'caller';
+            const hideForCallerStyle = isCaller ? 'display:none;' : '';
+
             tr.innerHTML = `
               <td class="col-business">${lead.business_name}</td>
               <td><span class="col-category">${lead.category}</span></td>
@@ -1883,16 +2226,19 @@
               <td>${scoreHTML}</td>
               <td>
                 <div style="display:flex; flex-direction:column; gap:4px;">
-                  ${waStatusHTML}
-                  ${emailStatusHTML}
+                  <div style="display:flex; gap:4px;">
+                    ${waStatusHTML}
+                    ${emailStatusHTML}
+                  </div>
+                  ${callStatusHTML}
                 </div>
               </td>
               <td>
                 <div class="action-buttons">
-                  <button class="action-btn wa-btn" onclick="openOutreachModal('${lead.id}', 'whatsapp')" title="Send WhatsApp message">
+                  <button class="action-btn wa-btn" onclick="openOutreachModal('${lead.id}', 'whatsapp')" title="Send WhatsApp message" style="${hideForCallerStyle}">
                     <i data-lucide="message-square" size="16"></i>
                   </button>
-                  <button class="action-btn" onclick="openOutreachModal('${lead.id}', 'email')" title="Send Email message" ${lead.email ? '' : 'disabled'}>
+                  <button class="action-btn" onclick="openOutreachModal('${lead.id}', 'email')" title="Send Email message" ${lead.email ? '' : 'disabled'} style="${hideForCallerStyle}">
                     <i data-lucide="mail" size="16"></i>
                   </button>
                   <button class="action-btn" onclick="openNotesModal('${lead.id}', '${encodeURIComponent(lead.notes || "")}')" title="Edit notes">
@@ -1907,8 +2253,46 @@
           lucide.createIcons();
         })
         .catch(err => {
-          tableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #ff3333;">Error retrieving leads: ${err.message}</td></tr>`;
+          tableBody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #ff3333;">Error retrieving leads: ${err.message}</td></tr>`;
         });
+    }
+
+    // Update contacted/interested/not_interested statuses
+    function updateLeadCallStatus(leadId, type, checked) {
+      const payload = {};
+      payload[type] = checked;
+
+      // Handle mutual exclusions
+      if (type === 'interested' && checked) {
+        payload['not_interested'] = false;
+        payload['contacted'] = true;
+      } else if (type === 'not_interested' && checked) {
+        payload['interested'] = false;
+        payload['contacted'] = true;
+      } else if (type === 'contacted' && !checked) {
+        payload['interested'] = false;
+        payload['not_interested'] = false;
+      }
+
+      fetch(`/api/leads/${leadId}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(r => r.json())
+      .then(res => {
+        if (res.success) {
+          showToast("Status updated successfully", "success");
+          fetchLeads(); // reload table to reflect checkbox states
+        } else {
+          showToast("Failed to update status: " + res.error, "error");
+          fetchLeads();
+        }
+      })
+      .catch(err => {
+        showToast("Error updating status: " + err.message, "error");
+        fetchLeads();
+      });
     }
 
     // Search and filter event listeners
